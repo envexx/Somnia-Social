@@ -93,6 +93,10 @@ export default function LeftSidebar({
                 src="/favicon.png" 
                 alt="Somnia Social Logo"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error('Logo failed to load:', e);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
             <h1 className={`text-lg lg:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Somnia Social</h1>

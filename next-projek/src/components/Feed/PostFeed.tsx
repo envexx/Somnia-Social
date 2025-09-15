@@ -297,7 +297,19 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             address: author // Add author address for follow functionality
           },
       content: (ipfsData as Record<string, unknown>).text as string || '',
-      image: (ipfsData as Record<string, unknown>).images && ((ipfsData as Record<string, unknown>).images as unknown[]).length > 0 ? ((ipfsData as Record<string, unknown>).images as unknown[])[0] as string : undefined,
+      image: (() => {
+        const images = (ipfsData as Record<string, unknown>).images as unknown[]
+        console.log('Post images array:', images)
+        if (images && images.length > 0) {
+          const firstImage = images[0] as string
+          console.log('First image CID:', firstImage)
+          // If CID already has ipfs:// prefix, use it as is, otherwise add prefix
+          const imageUrl = firstImage.startsWith('ipfs://') ? firstImage : `ipfs://${firstImage}`
+          console.log('Final image URL:', imageUrl)
+          return imageUrl
+        }
+        return undefined
+      })(),
       timestamp: new Date(Number((postData as unknown[])[3] || Date.now() / 1000) * 1000).toLocaleString(),
       likes: Number((postData as unknown[])[5] || 0),
       comments: Number((postData as unknown[])[7] || 0),
@@ -753,9 +765,17 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                   <div className="mb-4 -mx-4">
                     <div className="relative overflow-hidden rounded-xl">
                       <img 
-                        src={postData.image as string} 
+                        src={(postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
                         alt="Post content" 
                         className="w-full h-auto object-cover aspect-video"
+                        onError={(e) => {
+                          console.error('Post image failed to load:', e);
+                          console.error('Image URL:', (postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/'));
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('Post image loaded successfully:', (postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/'));
+                        }}
                       />
                     </div>
                   </div>
