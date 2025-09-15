@@ -78,7 +78,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center">
                 <img 
-                  src="/somnia social.png" 
+                  src="/next.svg" 
                   alt="Somnia Social Logo"
                   className="w-full h-full object-contain"
                 />
@@ -111,7 +111,7 @@ export default function Home() {
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center">
                     <img 
-                      src="/somnia social.png" 
+                      src="/next.svg" 
                       alt="Somnia Social Logo"
                       className="w-full h-full object-contain"
                     />
