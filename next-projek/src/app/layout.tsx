@@ -9,9 +9,9 @@ export const metadata = {
   title: 'Somnia Social - Web3 Social Platform',
   description: 'A decentralized social media platform built on Somnia Network with gasless transactions',
   icons: {
-    icon: '/next.svg',
-    shortcut: '/next.svg',
-    apple: '/next.svg',
+    icon: '../public/favicon.png',
+    shortcut: '../public/favicon.png',
+    apple: '../public/favicon.png',
   },
 }
 
