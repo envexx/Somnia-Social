@@ -1,0 +1,52 @@
+{
+  "name": "somnia-social-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Somnia Social - A gasless social media platform with IPFS storage",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:gas": "REPORT_GAS=true hardhat test",
+    "deploy:somnia": "hardhat run scripts/deploy.js --network somnia",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "verify:somnia": "hardhat verify --network somnia",
+    "coverage": "hardhat coverage",
+    "size": "hardhat size-contracts",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "social-media",
+    "ipfs",
+    "gasless",
+    "somnia",
+    "web3"
+  ],
+  "author": "Somnia Social Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@openzeppelin/contracts": "^4.9.0",
+    "chai": "^4.3.0",
+    "ethers": "^5.7.0",
+    "hardhat": "^2.19.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.16"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/somnia-social/contracts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/somnia-social/contracts/issues"
+  },
+  "homepage": "https://github.com/somnia-social/contracts#readme"
+}
