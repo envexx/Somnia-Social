@@ -205,7 +205,7 @@ export default function Home() {
       <ChatWidget isDarkMode={isDarkMode} />
       
       {/* Fixed Header - Hidden on mobile, visible on desktop */}
-      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} onShowProfile={handleShowProfile} />
     </div>
   )
 }
