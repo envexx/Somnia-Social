@@ -98,136 +98,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     return followingUsers.has(authorAddress)
   }
   
-  const [mockPosts] = useState<Post[]>([
-    {
-      id: '1',
-      author: {
-        name: 'Alice Johnson',
-        username: '@alice',
-        avatar: 'A',
-        verified: true
-      },
-      content: 'Just deployed my first Web3 dApp on Somnia! 🚀 The gasless transactions are amazing. Building the future of social media! #Web3 #Somnia #Blockchain',
-      timestamp: '2h',
-      likes: 42,
-      comments: 8,
-      shares: 12,
-      liked: false,
-      bookmarked: false
-    },
-    {
-      id: '2',
-      author: {
-        name: 'Bob Smith',
-        username: '@bob',
-        avatar: 'B',
-        verified: false
-      },
-      content: 'The decentralized social experience on Somnia is incredible. No more centralized control over our data! 💜',
-      timestamp: '4h',
-      likes: 28,
-      comments: 5,
-      shares: 7,
-      liked: true,
-      bookmarked: false
-    },
-    {
-      id: '3',
-      author: {
-        name: 'Carol Davis',
-        username: '@carol',
-        avatar: 'C',
-        verified: true
-      },
-      content: 'NFT profile pictures are the future! Just minted my first PFP on Somnia marketplace. Who else is excited about digital identity? 🎨',
-      timestamp: '6h',
-      likes: 67,
-      comments: 15,
-      shares: 23,
-      liked: false,
-      bookmarked: true
-    },
-    {
-      id: '4',
-      author: {
-        name: 'David Wilson',
-        username: '@david',
-        avatar: 'D',
-        verified: true
-      },
-      content: 'DeFi protocols are revolutionizing finance! Just staked my tokens and earning passive income. The future is decentralized! 💰 #DeFi #YieldFarming',
-      timestamp: '8h',
-      likes: 89,
-      comments: 22,
-      shares: 34,
-      liked: false,
-      bookmarked: false
-    },
-    {
-      id: '5',
-      author: {
-        name: 'Eva Brown',
-        username: '@eva',
-        avatar: 'E',
-        verified: false
-      },
-      content: 'Metaverse concerts are incredible! Just attended a virtual music festival in Somnia. The immersive experience was mind-blowing! 🎵 #Metaverse #Music',
-      timestamp: '10h',
-      likes: 156,
-      comments: 45,
-      shares: 67,
-      liked: true,
-      bookmarked: true
-    },
-    {
-      id: '6',
-      author: {
-        name: 'Frank Miller',
-        username: '@frank',
-        avatar: 'F',
-        verified: true
-      },
-      content: 'DAO governance is the future of organizations! Just voted on a proposal to fund community projects. Democracy in action! 🗳️ #DAO #Governance',
-      timestamp: '12h',
-      likes: 73,
-      comments: 18,
-      shares: 29,
-      liked: false,
-      bookmarked: false
-    },
-    {
-      id: '7',
-      author: {
-        name: 'Grace Lee',
-        username: '@grace',
-        avatar: 'G',
-        verified: true
-      },
-      content: 'GameFi is changing gaming forever! Earned tokens while playing my favorite game. Play-to-earn is the revolution we needed! 🎮 #GameFi #PlayToEarn',
-      timestamp: '14h',
-      likes: 201,
-      comments: 56,
-      shares: 89,
-      liked: true,
-      bookmarked: false
-    },
-    {
-      id: '8',
-      author: {
-        name: 'Henry Chen',
-        username: '@henry',
-        avatar: 'H',
-        verified: false
-      },
-      content: 'SocialFi platforms like Somnia are creating new ways to monetize content. Creators finally have control over their earnings! 💡 #SocialFi #CreatorEconomy',
-      timestamp: '16h',
-      likes: 94,
-      comments: 31,
-      shares: 42,
-      liked: false,
-      bookmarked: true
-    }
-  ])
+  // Mock posts removed - using blockchain data only
 
   const [newPost, setNewPost] = useState('')
   const [isPosting, setIsPosting] = useState(false)
@@ -350,7 +221,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   }, [latestPosts])
 
   // Convert blockchain post data to renderable format
-  const convertBlockchainPost = async (post: any) => {
+  const convertBlockchainPost = async (post: Record<string, unknown>) => {
     if (!post || !post.ipfsData) {
       console.log('Skipping post - no IPFS data:', post)
       return null
@@ -395,8 +266,8 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     let authorUsername = '@unknown'
     let authorAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
     
-    if (authorProfile && Array.isArray(authorProfile) && (authorProfile as any[]).length >= 4) {
-      const profileCid = (authorProfile as any[])[3] // profileCid is the 4th element
+    if (authorProfile && Array.isArray(authorProfile) && (authorProfile as unknown[]).length >= 4) {
+      const profileCid = (authorProfile as unknown[])[3] as string // profileCid is the 4th element
       if (profileCid && typeof profileCid === 'string') {
         try {
           const profileData = await ipfsService.fetchFromIPFS(profileCid)
@@ -441,7 +312,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   }
 
   // Combine blockchain posts with existing posts
-  const [convertedBlockchainPosts, setConvertedBlockchainPosts] = useState<any[]>([])
+  const [convertedBlockchainPosts, setConvertedBlockchainPosts] = useState<unknown[]>([])
   
   // Convert blockchain posts asynchronously
   useEffect(() => {

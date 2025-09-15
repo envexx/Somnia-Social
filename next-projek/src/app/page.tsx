@@ -10,7 +10,7 @@ import ProfileView from '@/components/Profile/ProfileView'
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const [showChat, setShowChat] = useState(false)
+  // const [showChat, setShowChat] = useState(false)
   const [currentView, setCurrentView] = useState<'feed' | 'profile'>('feed')
   const [activeTab, setActiveTab] = useState('feed')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)

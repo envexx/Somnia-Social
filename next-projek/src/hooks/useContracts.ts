@@ -173,7 +173,7 @@ export function useProfileContract() {
   const { writeContractAsync: createProfile } = useWriteContract()
   const { writeContractAsync: updateProfile } = useWriteContract()
 
-  const createProfileWithIPFS = async (username: string, displayName: string, bio?: string, avatar?: string, location?: string, links?: any) => {
+  const createProfileWithIPFS = async (username: string, displayName: string, bio?: string, avatar?: string, location?: string, links?: Record<string, unknown>) => {
     try {
       console.log('Starting profile creation process...')
       
@@ -222,7 +222,7 @@ export function useProfileContract() {
     }
   }
 
-  const updateProfileWithIPFS = async (displayName?: string, bio?: string, avatar?: string, location?: string, links?: any) => {
+  const updateProfileWithIPFS = async (displayName?: string, bio?: string, avatar?: string, location?: string, links?: Record<string, unknown>) => {
     try {
       console.log('Starting profile update process...')
       

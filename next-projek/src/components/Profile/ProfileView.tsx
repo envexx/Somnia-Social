@@ -740,7 +740,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
           </h3>
           <div className="space-y-4">
             {formattedUserPosts.length > 0 ? (
-              formattedUserPosts.map((post: any) => (
+              formattedUserPosts.map((post: Record<string, unknown>) => (
                 <article key={post.id} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
                   {/* Post Header */}
                   <div className="p-5">
