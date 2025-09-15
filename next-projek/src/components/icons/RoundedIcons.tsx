@@ -76,7 +76,7 @@ export const RoundedSearch: React.FC<IconProps> = ({ className = "w-4 h-4" }) =>
 );
 
 export const RoundedImage: React.FC<IconProps> = ({ className = "w-5 h-5" }) => (
-  <Image className={className} alt="Image icon" />
+  <Image className={className} />
 );
 
 export const RoundedVideo: React.FC<IconProps> = ({ className = "w-5 h-5" }) => (

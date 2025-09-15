@@ -149,7 +149,7 @@ export default function ChatWidget({ isDarkMode = false }: ChatWidgetProps) {
               }`}>
                 <Image className={`w-3.5 h-3.5 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`} alt="Image attachment" />
+                }`} />
               </button>
               <button className={`p-1.5 rounded-full transition-colors ${
                 isDarkMode 
