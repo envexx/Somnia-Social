@@ -1,7 +1,4 @@
-<div align="center">
-  <img src="next-projek/src/app/somnia social.png" alt="Somnia Social Logo" width="200" height="200">
-  <h1>🌟 Somnia Social - Decentralized Social Media Platform</h1>
-</div>
+# 🌟 Somnia Social - Decentralized Social Media Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Built for Somnia](https://img.shields.io/badge/Built%20for-Somnia-blue)](https://somnia.network)
@@ -93,8 +90,8 @@ This project is submitted for the **Somnia DeFi Mini Hackathon** (August 13 - Se
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/envexx/Somnia-Social.git
-cd Somnia-Social
+git clone https://github.com/your-username/somnia-social.git
+cd somnia-social
 ```
 
 2. **Install smart contract dependencies**
@@ -374,33 +371,6 @@ const { userProfile, createProfile } = useProfileContract()
 - 📋 Mobile applications
 - 📋 Enterprise features
 
-## 📁 Project Structure
-
-```
-Somnia-Social/
-├── contracts/                 # Smart contracts
-│   ├── contracts/            # Solidity contracts
-│   │   ├── ProfileRegistry.sol
-│   │   ├── PostFeed.sol
-│   │   ├── Reactions.sol
-│   │   ├── Badges.sol
-│   │   ├── BatchRelayer.sol
-│   │   └── TrustedForwarder.sol
-│   ├── scripts/              # Deployment scripts
-│   ├── test/                 # Contract tests
-│   └── artifacts/            # Compiled contracts
-├── next-projek/              # Frontend application
-│   ├── src/
-│   │   ├── app/              # Next.js app directory
-│   │   ├── components/       # React components
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── lib/              # Utilities and configs
-│   │   └── styles/           # CSS styles
-│   ├── public/               # Static assets
-│   └── docs/                 # Documentation
-└── README.md                 # This file
-```
-
 ## 🤝 Contributing
 
 We welcome contributions from the community! Here's how you can help:
@@ -442,7 +412,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Track**: Social Media & Community
 
 ### Community Links
-- **GitHub**: [https://github.com/envexx/Somnia-Social](https://github.com/envexx/Somnia-Social)
+- **GitHub**: [Repository Link]
 - **Demo Video**: [Video Link]
 - **Live Demo**: [Demo Link]
 - **Pitch Deck**: [Presentation Link]
