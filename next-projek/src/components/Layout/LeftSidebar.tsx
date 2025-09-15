@@ -90,7 +90,7 @@ export default function LeftSidebar({
           <div className="flex items-center justify-center space-x-3">
             <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
               <img 
-                src="../public/favicon.png" 
+                src="/favicon.png" 
                 alt="Somnia Social Logo"
                 className="w-full h-full object-contain"
                 onError={(e) => {
