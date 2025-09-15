@@ -6,9 +6,7 @@ import {
   RoundedMessage, 
   RoundedShare, 
   RoundedBookmark,
-  RoundedMore,
   RoundedImage,
-  RoundedSmile,
   RoundedHash,
   RoundedChart,
   RoundedShield,
@@ -47,7 +45,7 @@ interface PostFeedProps {
 
 export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeedProps) {
   const { address, isConnected } = useAccount()
-  const { createPost, latestPosts, refetchLatestPosts, getPostById } = usePostContract()
+  const { createPost, latestPosts, refetchLatestPosts } = usePostContract()
   const { toggleLike, hasLiked, getLikeCount } = useReactionsContract()
   const { hasProfile, userProfile, getProfileByOwner } = useProfileContract()
   
@@ -100,7 +98,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     return followingUsers.has(authorAddress)
   }
   
-  const [blockchainPosts] = useState<Post[]>([
+  const [mockPosts] = useState<Post[]>([
     {
       id: '1',
       author: {
@@ -237,19 +235,19 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [isUploadingImages, setIsUploadingImages] = useState(false)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
-  const [blockchainPostsData, setBlockchainPostsData] = useState<any[]>([])
+  const [blockchainPostsData, setBlockchainPostsData] = useState<unknown[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch profile data from IPFS
   useEffect(() => {
     const fetchProfileData = async () => {
       // userProfile is a tuple: [userId, ownerAddr, handleHash, profileCid]
-      const profileCid = userProfile ? (userProfile as any)[3] : null
+      const profileCid = userProfile ? (userProfile as unknown as unknown[])[3] as string : null
       
       if (userProfile && profileCid && address) {
         try {
           const data = await ipfsService.fetchFromIPFS(profileCid)
-          setProfileData(data)
+          setProfileData(data as ProfileData)
         } catch (error) {
           console.error('Error fetching profile data:', error)
         }
@@ -267,7 +265,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         console.log('Number of posts:', latestPosts.length)
         
         // Log detailed structure of each post
-        latestPosts.forEach((post: any, index: number) => {
+        latestPosts.forEach((post: unknown, index: number) => {
           console.log(`Post ${index} structure:`, post)
           console.log(`Post ${index} type:`, typeof post)
         })
@@ -277,7 +275,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         // and try to extract CID from it
         
         const postsWithIPFS = await Promise.all(
-          latestPosts.map(async (post: any, index: number) => {
+          latestPosts.map(async (post: unknown, index: number) => {
             try {
               console.log(`Processing post ${index}:`, post)
               
@@ -305,9 +303,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     console.log(`Post ${index} CID from tuple:`, cid)
                   }
                 }
-              } else if (post && typeof post === 'object' && (post as any).cid) {
+              } else if (post && typeof post === 'object' && (post as Record<string, unknown>).cid) {
                 // If post is an object with cid property
-                cid = (post as any).cid
+                cid = (post as Record<string, unknown>).cid as string
               } else if (typeof post === 'bigint') {
                 // If post is a BigInt (post ID), skip for now
                 console.log(`Post ${index} is BigInt ID:`, post)
@@ -405,10 +403,11 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
           console.log('Author profile data from IPFS:', profileData)
           
           if (profileData) {
-            authorName = profileData.displayName || 'Unknown User'
-            authorUsername = profileData.username || '@unknown'
-            authorAvatar = profileData.avatar ? 
-              profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/') : 
+            const profile = profileData as Record<string, unknown>
+            authorName = (profile.displayName as string) || 'Unknown User'
+            authorUsername = (profile.username as string) || '@unknown'
+            authorAvatar = profile.avatar ? 
+              (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : 
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
           }
         } catch (error) {
@@ -589,10 +588,10 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     console.log('Bookmarked post:', postId)
   }
 
-  const handleShare = (postId: string) => {
-    // TODO: Implement share functionality
-    console.log('Shared post:', postId)
-  }
+  // const handleShare = (postId: string) => {
+  //   // TODO: Implement share functionality
+  //   console.log('Shared post:', postId)
+  // }
 
   const handleImageUpload = async (files: FileList | null) => {
     if (!files) return
@@ -655,7 +654,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     setIsUploadingImages(true)
     
     try {
-      let imageCids: string[] = []
+      const imageCids: string[] = []
       
       // Upload images to IPFS if any
       if (selectedImages.length > 0) {

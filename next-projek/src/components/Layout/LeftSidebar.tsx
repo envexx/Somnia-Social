@@ -4,13 +4,11 @@ import { useAccount } from 'wagmi'
 import { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { 
-  RoundedGlobe,
   RoundedWallet,
   RoundedHome, 
   RoundedHash,
   RoundedUsers,
   RoundedTrendingUp,
-  RoundedSettings,
   RoundedZap,
   RoundedStar,
   RoundedMessage
@@ -37,7 +35,7 @@ export default function LeftSidebar({
 }: LeftSidebarProps) {
   const { address, isConnected } = useAccount()
   const { userProfile, hasProfile } = useProfileContract()
-  const [profileData, setProfileData] = useState<any>(null)
+  const [profileData, setProfileData] = useState<Record<string, unknown> | null>(null)
 
   // Handle navigation
   const handleTabClick = (tab: string) => {
@@ -51,7 +49,7 @@ export default function LeftSidebar({
     const fetchProfileData = async () => {
       if (userProfile && hasProfile && address) {
         try {
-          const profileCid = (userProfile as any)[3] // userProfile is a tuple: [userId, ownerAddr, handleHash, profileCid]
+          const profileCid = (userProfile as unknown as unknown[])[3] as string // userProfile is a tuple: [userId, ownerAddr, handleHash, profileCid]
           if (profileCid) {
             // Check cache first
             const cacheKey = CACHE_KEYS.PROFILE_DATA(address)
@@ -59,13 +57,13 @@ export default function LeftSidebar({
             
             if (cachedData) {
               console.log('Profile data found in cache for sidebar:', address)
-              setProfileData(cachedData)
+              setProfileData(cachedData as Record<string, unknown>)
               return
             }
 
             // Fetch from IPFS if not in cache
             const data = await ipfsService.fetchFromIPFS(profileCid)
-            setProfileData(data)
+            setProfileData(data as Record<string, unknown>)
             
             // Cache the profile data
             cacheService.set(cacheKey, data, CACHE_TTL.PROFILE_DATA)
@@ -149,7 +147,7 @@ export default function LeftSidebar({
               {profileData?.avatar ? (
                 <div className="w-10 h-10 rounded-xl overflow-hidden">
                   <img 
-                    src={profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/')} 
+                    src={(profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
                     alt="Profile Avatar"
                     className="w-full h-full object-cover"
                   />
@@ -157,7 +155,7 @@ export default function LeftSidebar({
               ) : (
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background: 'linear-gradient(to right, #0000FF, #4485F3)'}}>
                   <span className="text-white font-bold text-sm">
-                    {profileData?.displayName?.charAt(0)?.toUpperCase() || profileData?.username?.charAt(0)?.toUpperCase() || 'U'}
+                    {(profileData?.displayName as string)?.charAt(0)?.toUpperCase() || (profileData?.username as string)?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </div>
               )}
@@ -167,10 +165,10 @@ export default function LeftSidebar({
             </div>
             <div className="flex-1 min-w-0">
               <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'} text-sm truncate`}>
-                {profileData?.displayName || profileData?.username || 'Profile'}
+                {(profileData?.displayName as string) || (profileData?.username as string) || 'Profile'}
               </h3>
               <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} truncate`}>
-                @{profileData?.username || 'username'}
+                @{(profileData?.username as string) || 'username'}
               </p>
             </div>
           </div>

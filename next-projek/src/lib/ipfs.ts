@@ -65,7 +65,7 @@ class IPFSService {
   }
 
   // Upload content to IPFS
-  async uploadToIPFS(content: any): Promise<string> {
+  async uploadToIPFS(content: unknown): Promise<string> {
     try {
       let cid: string
 
@@ -91,7 +91,7 @@ class IPFSService {
   }
 
   // Fetch content from IPFS with caching
-  async fetchFromIPFS(cid: string): Promise<any> {
+  async fetchFromIPFS(cid: string): Promise<unknown> {
     try {
       // Check cache first
       const cacheKey = CACHE_KEYS.IPFS_DATA(cid)
@@ -138,7 +138,7 @@ class IPFSService {
   }
 
   // Upload to Infura IPFS
-  private async uploadToInfura(content: any): Promise<string> {
+  private async uploadToInfura(content: unknown): Promise<string> {
     if (!this.config.apiKey || !this.config.apiSecret) {
       throw new Error('Infura API key and secret required')
     }
@@ -168,7 +168,7 @@ class IPFSService {
   }
 
   // Upload to Pinata IPFS
-  private async uploadToPinata(content: any): Promise<string> {
+  private async uploadToPinata(content: unknown): Promise<string> {
     if (!this.config.apiKey || !this.config.apiSecret) {
       throw new Error('Pinata API key and secret required')
     }
@@ -200,7 +200,7 @@ class IPFSService {
   }
 
   // Upload to Web3.Storage
-  private async uploadToWeb3Storage(content: any): Promise<string> {
+  private async uploadToWeb3Storage(content: unknown): Promise<string> {
     if (!this.config.apiKey) {
       throw new Error('Web3.Storage API key required')
     }

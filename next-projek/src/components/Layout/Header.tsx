@@ -5,7 +5,6 @@ import {
   RoundedSearch,
   RoundedSun, 
   RoundedMoon, 
-  RoundedMenu,
   RoundedBell,
   RoundedUsers
 } from '@/components/icons/RoundedIcons'

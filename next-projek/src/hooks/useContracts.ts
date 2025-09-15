@@ -4,7 +4,7 @@ import { useReadContract, useWriteContract, useAccount } from 'wagmi'
 import { useEffect } from 'react'
 import { ethers } from 'ethers'
 import { CONTRACT_ADDRESSES, PROFILE_REGISTRY_ABI, POST_FEED_ABI, REACTIONS_ABI, BADGES_ABI } from '@/lib/web3-config'
-import { ipfsService, createProfileData, createPostData, ProfileData, PostData } from '@/lib/ipfs'
+import { ipfsService, createProfileData, createPostData, PostData, ProfileData } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
 
 export function useProfileContract() {
@@ -229,8 +229,8 @@ export function useProfileContract() {
       if (!userProfile) throw new Error('No existing profile found')
       
       // Get userId from userProfile (userProfile is a tuple: [userId, ownerAddr, handleHash, profileCid])
-      const userId = (userProfile as any)[0]
-      const existingProfileCid = (userProfile as any)[3]
+      const userId = (userProfile as unknown as unknown[])[0] as bigint
+      const existingProfileCid = (userProfile as unknown as unknown[])[3] as string
       
       if (!userId) throw new Error('User ID not found')
       if (!existingProfileCid) throw new Error('Profile CID not found')
@@ -244,15 +244,19 @@ export function useProfileContract() {
       console.log('Existing profile data:', existingData)
       
       // Update profile data with all fields
+      const existingProfile = existingData as Record<string, unknown>
       const updatedData = {
-        ...existingData,
-        displayName: displayName || existingData.displayName,
-        bio: bio || existingData.bio,
-        avatar: avatar || existingData.avatar,
-        location: location || existingData.location,
-        links: links || existingData.links,
+        ...existingProfile,
+        version: (existingProfile.version as number) || 1,
+        username: (existingProfile.username as string) || '',
+        displayName: displayName || (existingProfile.displayName as string),
+        bio: bio || (existingProfile.bio as string),
+        avatar: avatar || (existingProfile.avatar as string),
+        location: location || (existingProfile.location as string),
+        links: links || (existingProfile.links as Record<string, unknown>),
+        createdAt: (existingProfile.createdAt as number) || Math.floor(Date.now() / 1000),
         updatedAt: Math.floor(Date.now() / 1000)
-      }
+      } as ProfileData
       console.log('Updated profile data:', updatedData)
       
       // Upload updated data to IPFS

@@ -19,13 +19,13 @@ export default function Home() {
     setIsDarkMode(!isDarkMode)
   }
 
-  const handleShowChat = () => {
-    setShowChat(!showChat)
-  }
+  // const handleShowChat = () => {
+  //   setShowChat(!showChat)
+  // }
 
-  const handleCloseChat = () => {
-    setShowChat(false)
-  }
+  // const handleCloseChat = () => {
+  //   setShowChat(false)
+  // }
 
   const handleShowProfile = () => {
     setCurrentView('profile')

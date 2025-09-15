@@ -4,9 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useAccount } from 'wagmi'
 import { 
   RoundedGlobe,
-  RoundedWallet,
-  RoundedUsers,
-  RoundedTrendingUp,
   RoundedMessage,
   RoundedHeart,
   RoundedShare,
@@ -14,7 +11,7 @@ import {
   RoundedCamera,
   RoundedShield
 } from '@/components/icons/RoundedIcons'
-import { useProfileContract, usePostContract, useReactionsContract } from '@/hooks/useContracts'
+import { useProfileContract, usePostContract } from '@/hooks/useContracts'
 import { ipfsService } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
 import '@/styles/hide-scrollbar.css'
@@ -48,14 +45,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
     userProfile, 
     hasProfile, 
     createProfile, 
-    updateProfile,
-    testContractConnection,
-    refetchUserProfile,
-    refetchHasProfile,
-    userProfileLoading,
-    userProfileError,
-    hasProfileLoading,
-    hasProfileError
+    updateProfile
   } = useProfileContract()
   const { totalPosts, userPosts } = usePostContract()
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
@@ -65,7 +55,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
-  const [formattedUserPosts, setFormattedUserPosts] = useState<any[]>([])
+  const [formattedUserPosts, setFormattedUserPosts] = useState<unknown[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [editData, setEditData] = useState({
     username: '',
@@ -82,7 +72,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
   useEffect(() => {
     const fetchProfileData = async () => {
       // userProfile is a tuple: [userId, ownerAddr, handleHash, profileCid]
-      const profileCid = userProfile ? (userProfile as any)[3] : null
+      const profileCid = userProfile ? (userProfile as unknown as unknown[])[3] as string : null
       
       if (userProfile && profileCid && address) {
         try {
@@ -120,26 +110,27 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
           // Fetch from IPFS if not in cache
           const data = await ipfsService.fetchFromIPFS(profileCid)
           
-          setProfileData(data)
+          setProfileData(data as ProfileData)
           
           // Convert IPFS avatar URL to HTTP URL for edit form
-          const httpAvatarUrl = data.avatar ? data.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/') : ''
+          const profile = data as Record<string, unknown>
+          const httpAvatarUrl = profile.avatar ? (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : ''
           
           setEditData({
-            username: data.username || '',
-            displayName: data.displayName || '',
-            bio: data.bio || '',
-            location: data.location || '',
-            website: data.links?.website || '',
-            github: data.links?.github || '',
-            x: data.links?.x || '',
+            username: (profile.username as string) || '',
+            displayName: (profile.displayName as string) || '',
+            bio: (profile.bio as string) || '',
+            location: (profile.location as string) || '',
+            website: (profile.links as Record<string, unknown>)?.website as string || '',
+            github: (profile.links as Record<string, unknown>)?.github as string || '',
+            x: (profile.links as Record<string, unknown>)?.x as string || '',
             avatar: httpAvatarUrl
           })
           
           // Set avatar preview if avatar exists
-          if (data.avatar) {
+          if (profile.avatar) {
             // Convert IPFS URL to HTTP URL for browser compatibility
-            const httpAvatarUrl = data.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/')
+            const httpAvatarUrl = (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')
             setAvatarPreview(httpAvatarUrl)
           }
 
@@ -168,14 +159,16 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
               console.log(`Fetching IPFS data for post ${index + 1}, CID:`, post.cid)
               const ipfsData = await ipfsService.fetchFromIPFS(post.cid)
               console.log(`IPFS data fetched for post ${index + 1}:`, ipfsData)
-              console.log(`IPFS text content:`, ipfsData.text)
-              console.log(`IPFS images:`, ipfsData.images)
+              console.log(`IPFS text content:`, (ipfsData as Record<string, unknown>).text)
+              console.log(`IPFS images:`, (ipfsData as Record<string, unknown>).images)
               
               // Format the post like in the feed
+              const postData = ipfsData as Record<string, unknown>
               return {
                 id: (index + 1).toString(),
-                content: ipfsData.text || 'No content available',
-                image: ipfsData.images && ipfsData.images.length > 0 ? ipfsData.images[0].replace('ipfs://', 'https://ipfs.io/ipfs/') : null,
+                content: (postData.text as string) || 'No content available',
+                image: postData.images && Array.isArray(postData.images) && postData.images.length > 0 ? 
+                  (postData.images[0] as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : null,
                 timestamp: new Date(Number(post.createdAt) * 1000).toLocaleDateString(),
                 author: {
                   name: profileData?.displayName || 'Unknown User',
@@ -747,7 +740,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
           </h3>
           <div className="space-y-4">
             {formattedUserPosts.length > 0 ? (
-              formattedUserPosts.map((post) => (
+              formattedUserPosts.map((post: any) => (
                 <article key={post.id} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
                   {/* Post Header */}
                   <div className="p-5">
