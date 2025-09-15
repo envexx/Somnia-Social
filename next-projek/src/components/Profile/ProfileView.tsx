@@ -740,33 +740,36 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
           </h3>
           <div className="space-y-4">
             {formattedUserPosts.length > 0 ? (
-              formattedUserPosts.map((post: Record<string, unknown>) => (
-                <article key={post.id} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
+              formattedUserPosts.map((post) => {
+                const postData = post as Record<string, unknown>
+                const author = postData.author as Record<string, unknown>
+                return (
+                <article key={postData.id as string} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
                   {/* Post Header */}
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3 flex-1">
-                        <img src={post.author.avatar} alt={post.author.username} className="w-10 h-10 rounded-full border-2 border-white/50" />
+                        <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50" />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{post.author.name}</h4>
-                            {post.author.verified && <RoundedShield className="w-4 h-4 text-blue-500" />}
+                            <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
+                            {author?.verified as boolean && <RoundedShield className="w-4 h-4 text-blue-500" />}
                           </div>
-                          <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{post.timestamp}</p>
+                          <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{postData.timestamp as string}</p>
                         </div>
                       </div>
                     </div>
                     
                     <div className="mb-4">
-                      <p className={`${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-base leading-relaxed`}>{post.content}</p>
+                      <p className={`${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-base leading-relaxed`}>{postData.content as string}</p>
                     </div>
 
                     {/* Post Image */}
-                    {post.image && (
+                    {postData.image as string && (
                       <div className="mb-4 -mx-4">
                         <div className="relative overflow-hidden rounded-xl">
                           <img 
-                            src={post.image} 
+                            src={postData.image as string} 
                             alt="Post content" 
                             className="w-full h-auto object-cover aspect-video"
                           />
@@ -780,13 +783,13 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
                         <button 
                           disabled={!isConnected}
                           className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${
-                            post.liked
+                            postData.liked
                               ? `${isDarkMode ? 'text-red-400 bg-red-500/20' : 'text-red-600 bg-red-50'}` 
                               : `${isDarkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/10' : 'text-gray-500 hover:text-red-600 hover:bg-red-50'}`
                           }`}
                         >
-                          <RoundedHeart className={`w-4 h-4 ${post.liked ? 'fill-current' : ''}`} />
-                          <span className="text-sm font-medium">{post.likeCount}</span>
+                          <RoundedHeart className={`w-4 h-4 ${postData.liked ? 'fill-current' : ''}`} />
+                          <span className="text-sm font-medium">{postData.likeCount as number}</span>
                         </button>
                         
                         <button 
@@ -794,7 +797,7 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
                           className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`}
                         >
                           <RoundedMessage className="w-4 h-4" />
-                          <span className="text-sm font-medium">{post.commentCount}</span>
+                          <span className="text-sm font-medium">{postData.commentCount as number}</span>
                         </button>
                         
                         <button 
@@ -802,13 +805,14 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
                           className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${isDarkMode ? 'text-slate-400 hover:text-green-400 hover:bg-green-500/10' : 'text-gray-500 hover:text-green-600 hover:bg-green-50'}`}
                         >
                           <RoundedShare className="w-4 h-4" />
-                          <span className="text-sm font-medium">{post.repostCount}</span>
+                          <span className="text-sm font-medium">{postData.shareCount as number}</span>
                         </button>
                       </div>
                     </div>
                   </div>
                 </article>
-              ))
+                )
+              })
             ) : (
               <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-white border-gray-200'}`}>
                 <div className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>

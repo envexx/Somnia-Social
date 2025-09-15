@@ -236,12 +236,12 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       // If postData is array, check if first element is object or string
       const firstElement = postData[0]
       if (firstElement && typeof firstElement === 'object' && (firstElement as Record<string, unknown>).author) {
-        author = (firstElement as Record<string, unknown>).author
+        author = (firstElement as Record<string, unknown>).author as string
       } else if (typeof firstElement === 'string') {
         author = firstElement
       }
     } else if (postData && typeof postData === 'object' && (postData as Record<string, unknown>).author) {
-      author = (postData as Record<string, unknown>).author
+      author = (postData as Record<string, unknown>).author as string
     }
     
     console.log('Converting blockchain post:', post)
@@ -296,12 +296,12 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             verified: false, // TODO: Implement verification system
             address: author // Add author address for follow functionality
           },
-      content: ipfsData.text || '',
-      image: ipfsData.images && ipfsData.images.length > 0 ? ipfsData.images[0].replace('ipfs://', 'https://ipfs.io/ipfs/') : undefined,
-      timestamp: new Date(Number(postData[3] || Date.now() / 1000) * 1000).toLocaleString(),
-      likes: Number(postData[5] || 0),
-      comments: Number(postData[7] || 0),
-      shares: Number(postData[6] || 0),
+      content: (ipfsData as Record<string, unknown>).text as string || '',
+      image: (ipfsData as Record<string, unknown>).images && ((ipfsData as Record<string, unknown>).images as unknown[]).length > 0 ? ((ipfsData as Record<string, unknown>).images as unknown[])[0] as string : undefined,
+      timestamp: new Date(Number((postData as unknown[])[3] || Date.now() / 1000) * 1000).toLocaleString(),
+      likes: Number((postData as unknown[])[5] || 0),
+      comments: Number((postData as unknown[])[7] || 0),
+      shares: Number((postData as unknown[])[6] || 0),
       liked: false, // TODO: Implement like status
       bookmarked: false // TODO: Implement bookmark status
     }
@@ -322,7 +322,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         const converted = await Promise.all(
           blockchainPostsData.map(async (post) => {
             try {
-              return await convertBlockchainPost(post)
+              return await convertBlockchainPost(post as Record<string, unknown>)
             } catch (error) {
               console.error('Error converting post:', error)
               return null
@@ -352,14 +352,14 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         console.log('Fetching like data for all posts...', {
           totalPosts: allPosts.length,
           userAddress: address,
-          postIds: allPosts.map(p => p.id)
+          postIds: allPosts.map(p => (p as Record<string, unknown>).id as string)
         })
         
         // Process posts in batches to avoid overwhelming the RPC
         const batchSize = 3
         for (let i = 0; i < allPosts.length; i += batchSize) {
           const batch = allPosts.slice(i, i + batchSize)
-          await Promise.all(batch.map(post => fetchLikeData(post.id)))
+          await Promise.all(batch.map(post => fetchLikeData((post as Record<string, unknown>).id as string)))
           
           // Small delay between batches
           if (i + batchSize < allPosts.length) {
@@ -703,30 +703,33 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             </button>
           </div>
         ) : (
-          allPosts.map((post) => (
-            <article key={post.id} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
+          allPosts.map((post) => {
+            const postData = post as Record<string, unknown>
+            const author = postData.author as Record<string, unknown>
+            return (
+            <article key={postData.id as string} className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} overflow-hidden transition-all shadow-lg hover:shadow-xl`}>
               {/* Post Header */}
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3 flex-1">
-                    <img src={(post as Record<string, unknown>).author?.avatar as string} alt={(post as Record<string, unknown>).author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50" />
+                    <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{(post as Record<string, unknown>).author?.name as string}</h4>
-                        {(post as Record<string, unknown>).author?.verified && <RoundedShield className="w-4 h-4 text-blue-500" />}
+                        <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
+                        {author?.verified as boolean && <RoundedShield className="w-4 h-4 text-blue-500" />}
                       </div>
-                      <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{post.timestamp as string}</p>
+                      <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{postData.timestamp as string}</p>
                     </div>
                   </div>
                   
                   {/* Follow Button - Only show if it's not the current user's post */}
-                  {(post as Record<string, unknown>).author?.address && (post as Record<string, unknown>).author?.address !== address && (
+                  {(author?.address as string) && (author?.address as string) !== address && (
                     <div className="flex items-center ml-3">
                       <button
-                        onClick={() => handleFollow((post as Record<string, unknown>).author?.address as string)}
+                        onClick={() => handleFollow(author?.address as string)}
                         disabled={isFollowing}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                          isUserFollowing((post as Record<string, unknown>).author?.address as string)
+                          isUserFollowing(author?.address as string)
                             ? isDarkMode
                               ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -735,22 +738,22 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                               : 'bg-blue-500/20 text-blue-600 border border-blue-500/30 hover:bg-blue-500/30'
                         }`}
                       >
-                        {isFollowing ? '...' : isUserFollowing((post as Record<string, unknown>).author?.address as string) ? 'Following' : 'Follow'}
+                        {isFollowing ? '...' : isUserFollowing(author?.address as string) ? 'Following' : 'Follow'}
                       </button>
                     </div>
                   )}
                 </div>
                 
                 <div className="mb-4">
-                  <p className={`${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-base leading-relaxed`}>{post.content}</p>
+                  <p className={`${isDarkMode ? 'text-slate-200' : 'text-slate-700'} text-base leading-relaxed`}>{postData.content as string}</p>
                 </div>
 
                 {/* Post Image */}
-                {post.image && (
+                {(postData.image as string) && (
                   <div className="mb-4 -mx-4">
                     <div className="relative overflow-hidden rounded-xl">
                       <img 
-                        src={post.image} 
+                        src={postData.image as string} 
                         alt="Post content" 
                         className="w-full h-auto object-cover aspect-video"
                       />
@@ -762,38 +765,38 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                 <div className="flex items-center justify-between py-3 border-t border-white/20">
                   <div className="flex items-center space-x-4">
                     <button 
-                      onClick={() => handleLike(post.id)}
+                      onClick={() => handleLike(postData.id as string)}
                       disabled={!isConnected || isLiking}
                       className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${
-                        (postLikes.get(post.id)?.liked || post.liked)
+                        (postLikes.get(postData.id as string)?.liked || postData.liked)
                           ? `${isDarkMode ? 'text-red-400 bg-red-500/20' : 'text-red-600 bg-red-50'}` 
                           : `${isDarkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <RoundedHeart className={`w-4 h-4 ${(postLikes.get(post.id)?.liked || post.liked) ? 'fill-current' : ''}`} />
+                      <RoundedHeart className={`w-4 h-4 ${(postLikes.get(postData.id as string)?.liked || postData.liked) ? 'fill-current' : ''}`} />
                       <span className="text-xs font-medium">
                         {(() => {
-                          const likeData = postLikes.get(post.id)
-                          const displayCount = likeData?.count ?? post.likes
-                          console.log(`Rendering like count for post ${post.id}:`, {
-                            postId: post.id,
+                          const likeData = postLikes.get(postData.id as string)
+                          const displayCount = likeData?.count ?? postData.likes
+                          console.log(`Rendering like count for post ${postData.id}:`, {
+                            postId: postData.id,
                             likeData,
-                            fallbackCount: post.likes,
+                            fallbackCount: postData.likes,
                             displayCount
                           })
-                          return formatNumber(displayCount)
+                          return formatNumber(displayCount as number)
                         })()}
                       </span>
                     </button>
                     
                     <button className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}>
                       <RoundedMessage className="w-4 h-4" />
-                      <span className="text-xs font-medium">{post.comments}</span>
+                      <span className="text-xs font-medium">{postData.comments as number}</span>
                     </button>
                     
                     <button className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}>
                       <RoundedShare className="w-4 h-4" />
-                      <span className="text-xs font-medium">{post.shares}</span>
+                      <span className="text-xs font-medium">{postData.shares as number}</span>
                     </button>
                   </div>
                   
@@ -803,16 +806,17 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                       <span>{formatNumber(649)}</span>
                     </span>
                     <button 
-                      onClick={() => handleBookmark(post.id)}
+                      onClick={() => handleBookmark(postData.id as string)}
                       className={`p-1 ${isDarkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50' : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'} rounded-lg transition-all`}
                     >
-                      <RoundedBookmark className={`w-4 h-4 ${post.bookmarked ? 'fill-current' : ''}`} />
+                      <RoundedBookmark className={`w-4 h-4 ${postData.bookmarked ? 'fill-current' : ''}`} />
                     </button>
                   </div>
                 </div>
               </div>
             </article>
-          ))
+            )
+          })
         )}
       </div>
 
