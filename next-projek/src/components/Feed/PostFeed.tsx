@@ -235,13 +235,13 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     if (Array.isArray(postData)) {
       // If postData is array, check if first element is object or string
       const firstElement = postData[0]
-      if (firstElement && typeof firstElement === 'object' && firstElement.author) {
-        author = firstElement.author
+      if (firstElement && typeof firstElement === 'object' && (firstElement as Record<string, unknown>).author) {
+        author = (firstElement as Record<string, unknown>).author
       } else if (typeof firstElement === 'string') {
         author = firstElement
       }
-    } else if (postData && typeof postData === 'object' && postData.author) {
-      author = postData.author
+    } else if (postData && typeof postData === 'object' && (postData as Record<string, unknown>).author) {
+      author = (postData as Record<string, unknown>).author
     }
     
     console.log('Converting blockchain post:', post)
@@ -709,24 +709,24 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3 flex-1">
-                    <img src={post.author.avatar} alt={post.author.username} className="w-10 h-10 rounded-full border-2 border-white/50" />
+                    <img src={(post as Record<string, unknown>).author?.avatar as string} alt={(post as Record<string, unknown>).author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{post.author.name}</h4>
-                        {post.author.verified && <RoundedShield className="w-4 h-4 text-blue-500" />}
+                        <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{(post as Record<string, unknown>).author?.name as string}</h4>
+                        {(post as Record<string, unknown>).author?.verified && <RoundedShield className="w-4 h-4 text-blue-500" />}
                       </div>
-                      <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{post.timestamp}</p>
+                      <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{post.timestamp as string}</p>
                     </div>
                   </div>
                   
                   {/* Follow Button - Only show if it's not the current user's post */}
-                  {post.author.address && post.author.address !== address && (
+                  {(post as Record<string, unknown>).author?.address && (post as Record<string, unknown>).author?.address !== address && (
                     <div className="flex items-center ml-3">
                       <button
-                        onClick={() => handleFollow(post.author.address!)}
+                        onClick={() => handleFollow((post as Record<string, unknown>).author?.address as string)}
                         disabled={isFollowing}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                          isUserFollowing(post.author.address)
+                          isUserFollowing((post as Record<string, unknown>).author?.address as string)
                             ? isDarkMode
                               ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -735,7 +735,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                               : 'bg-blue-500/20 text-blue-600 border border-blue-500/30 hover:bg-blue-500/30'
                         }`}
                       >
-                        {isFollowing ? '...' : isUserFollowing(post.author.address) ? 'Following' : 'Follow'}
+                        {isFollowing ? '...' : isUserFollowing((post as Record<string, unknown>).author?.address as string) ? 'Following' : 'Follow'}
                       </button>
                     </div>
                   )}
