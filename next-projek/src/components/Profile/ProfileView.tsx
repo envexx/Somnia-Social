@@ -14,6 +14,7 @@ import {
 import { useProfileContract, usePostContract } from '@/hooks/useContracts'
 import { ipfsService } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
+import BadgeDisplay, { AllBadgesDisplay } from '@/components/Badges/BadgeDisplay'
 import '@/styles/hide-scrollbar.css'
 
 interface ProfileViewProps {
@@ -564,9 +565,17 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
                 </div>
               ) : (
                 <div>
-                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'} mb-2`}>
-                    {profileData?.displayName || 'Unnamed User'}
-                  </h2>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {profileData?.displayName || 'Unnamed User'}
+                    </h2>
+                    <BadgeDisplay 
+                      userAddress={address}
+                      isDarkMode={isDarkMode}
+                      size="md"
+                      showText={true}
+                    />
+                  </div>
                   <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-3`}>
                     @{profileData?.username || 'username'}
                   </p>
@@ -607,6 +616,17 @@ export default function ProfileView({ isDarkMode = false, onBackToFeed }: Profil
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Badges Section */}
+        <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 mb-8`}>
+          <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            Achievements & Badges
+          </h3>
+          <AllBadgesDisplay 
+            userAddress={address}
+            isDarkMode={isDarkMode}
+          />
         </div>
 
         {/* Additional Info */}

@@ -37,9 +37,10 @@ This project is submitted for the **Somnia DeFi Mini Hackathon** (August 13 - Se
 - **Share & Bookmark**: Social sharing and content saving features
 
 ### 🏅 **Achievement System**
-- **Tiered Badge System**: 4-tier achievement system (Bronze, Silver, Gold, Platinum)
-- **ERC-1155 Badges**: Non-transferable achievement tokens
-- **Automatic Progression**: Badges awarded based on activity metrics
+- **Tiered Badge System**: 5-tier achievement system (Beginner, Bronze, Silver, Gold, Platinum)
+- **NFT Badges**: ERC-1155 non-transferable achievement tokens - these are the NFTs that represent your social status
+- **Automatic Progression**: Badges awarded based on activity metrics and community engagement
+- **Visual Identity**: Each badge tier has unique colors and icons displayed across the platform
 
 ### ⚡ **Advanced Features**
 - **Batch Transactions**: Multiple actions in a single gasless transaction
@@ -165,10 +166,10 @@ Visit `http://localhost:3000` to access the application.
 - Post engagement metrics
 
 #### Badges
-- ERC-1155 non-transferable tokens
-- 4-tier achievement system
-- Automatic badge progression
-- Achievement metadata
+- **NFT Achievement System**: ERC-1155 non-transferable tokens that serve as your social status NFTs
+- **5-tier System**: Beginner, Bronze, Silver, Gold, Platinum progression
+- **Activity-based Rewards**: Badges earned through posts, likes, and community engagement
+- **Visual Recognition**: Unique icons and colors displayed across profile, feed, and sidebar
 
 #### BatchRelayer
 - Gasless batch transaction execution
@@ -357,7 +358,7 @@ const { userProfile, createProfile } = useProfileContract()
 - ✅ User profiles and authentication
 - ✅ Post creation and feed system
 - ✅ Like and reaction system
-- ✅ Badge achievement system
+- ✅ NFT Badge achievement system (5-tier)
 - ✅ Gasless transactions
 
 ### Phase 2: Enhanced Features
@@ -441,11 +442,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Hackathon**: Somnia DeFi Mini Hackathon 2025
 - **Track**: Social Media & Community
 
-### Community Links
+### Repo Links
 - **GitHub**: [https://github.com/envexx/Somnia-Social](https://github.com/envexx/Somnia-Social)
-- **Demo Video**: [Video Link]
-- **Live Demo**: [Demo Link]
-- **Pitch Deck**: [Presentation Link]
+
 
 ### Somnia Community
 - **X (Twitter)**: [https://x.com/Somnia_Network](https://x.com/Somnia_Network)
@@ -456,4 +455,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for the Somnia ecosystem**
 
-*This project represents the future of decentralized social media - where users own their data, content is censorship-resistant, and interactions are truly peer-to-peer.*
+*This project represents the future of decentralized social media - where users own their data, content is censorship-resistant, interactions are truly peer-to-peer, and your social achievements are represented as NFTs on the blockchain.*

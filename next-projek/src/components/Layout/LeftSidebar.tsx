@@ -16,6 +16,7 @@ import {
 import { useProfileContract } from '@/hooks/useContracts'
 import { ipfsService } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
+import BadgeDisplay from '@/components/Badges/BadgeDisplay'
 import '@/styles/hide-scrollbar.css'
 
 interface LeftSidebarProps {
@@ -169,9 +170,17 @@ export default function LeftSidebar({
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'} text-sm truncate`}>
-                  {(profileData?.displayName as string) || (profileData?.username as string) || 'Profile'}
-                </h3>
+                <div className="flex items-center space-x-2 mb-1">
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'} text-sm truncate`}>
+                    {(profileData?.displayName as string) || (profileData?.username as string) || 'Profile'}
+                  </h3>
+                  <BadgeDisplay 
+                    userAddress={address}
+                    isDarkMode={isDarkMode}
+                    size="sm"
+                    showText={false}
+                  />
+                </div>
                 <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} truncate`}>
                   @{(profileData?.username as string) || 'username'}
                 </p>

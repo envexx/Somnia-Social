@@ -16,6 +16,7 @@ import {
 import { useAccount } from 'wagmi'
 import { usePostContract, useReactionsContract, useProfileContract } from '@/hooks/useContracts'
 import { ipfsService, ProfileData } from '@/lib/ipfs'
+import BadgeDisplay from '@/components/Badges/BadgeDisplay'
 import '@/styles/hide-scrollbar.css'
 
 interface Post {
@@ -728,6 +729,12 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
+                        <BadgeDisplay 
+                          userAddress={author?.address as string}
+                          isDarkMode={isDarkMode}
+                          size="sm"
+                          showText={false}
+                        />
                         {author?.verified as boolean && <RoundedShield className="w-4 h-4 text-blue-500" />}
                       </div>
                       <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{postData.timestamp as string}</p>
