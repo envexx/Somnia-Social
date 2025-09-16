@@ -18,6 +18,8 @@ Somnia Social is a revolutionary decentralized social media platform that levera
 
 This project is submitted for the **Somnia DeFi Mini Hackathon** (August 13 - September 12, 2025), competing for $15,000 in prizes across multiple tracks.
 
+📋 **[View Pitch Deck](https://drive.google.com/drive/folders/17mAsfJc86yJRhUxMxGnBdIY-8w2IdvVE?usp=sharing)**
+
 ## ✨ Key Features
 
 ### 🔐 **Decentralized Identity**
@@ -49,6 +51,9 @@ This project is submitted for the **Somnia DeFi Mini Hackathon** (August 13 - Se
 - **Responsive Design**: Mobile-first, dark/light mode support
 
 ## 🏗️ Architecture
+
+### Architecture Diagram
+📊 **[View Detailed Architecture Diagram](https://drive.google.com/drive/folders/17mAsfJc86yJRhUxMxGnBdIY-8w2IdvVE?usp=sharing)**
 
 ### Smart Contract Layer
 ```
@@ -442,9 +447,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Hackathon**: Somnia DeFi Mini Hackathon 2025
 - **Track**: Social Media & Community
 
+### Team Contact
+- **Telegram**: [@mimpowo](https://t.me/mimpowo)
+- **X (Twitter)**: [@mimpowo](https://x.com/mimpowo)
+
 ### Repo Links
 - **GitHub**: [https://github.com/envexx/Somnia-Social](https://github.com/envexx/Somnia-Social)
-
 
 ### Somnia Community
 - **X (Twitter)**: [https://x.com/Somnia_Network](https://x.com/Somnia_Network)
