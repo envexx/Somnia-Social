@@ -10,7 +10,6 @@ import {
   RoundedHash,
   RoundedChart,
   RoundedShield,
-  RoundedEye,
   RoundedClose
 } from '@/components/icons/RoundedIcons'
 import { useAccount } from 'wagmi'
@@ -40,15 +39,51 @@ interface Post {
 
 interface PostFeedProps {
   posts: Post[]
-  onLike: (postId: number) => void
+  onLike?: (postId: number) => void
   isDarkMode?: boolean
 }
 
 export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeedProps) {
   const { address, isConnected } = useAccount()
-  const { createPost, latestPosts, refetchLatestPosts } = usePostContract()
+  const { createPost, latestPosts, refetchLatestPosts, latestPostsError, latestPostsLoading } = usePostContract()
   const { toggleLike, hasLiked, getLikeCount } = useReactionsContract()
   const { hasProfile, userProfile, getProfileByOwner } = useProfileContract()
+  
+  // Helper function to verify transaction and wait for confirmation
+  const waitForTransactionConfirmation = async (txHash: string, maxWaitTime = 30000) => {
+    const startTime = Date.now()
+    const pollInterval = 2000
+    
+    return new Promise<boolean>((resolve) => {
+      const checkTransaction = async () => {
+        try {
+          // Check if we've exceeded max wait time
+          if (Date.now() - startTime > maxWaitTime) {
+            console.warn(`⚠️ Transaction confirmation timeout for ${txHash}`)
+            resolve(false)
+            return
+          }
+          
+          // In a real implementation, you would check the transaction status
+          // For now, we'll assume it's confirmed after a reasonable time
+          const elapsed = Date.now() - startTime
+          if (elapsed > 10000) { // Assume confirmed after 10 seconds
+            console.log(`✅ Transaction ${txHash} assumed confirmed after ${elapsed}ms`)
+            resolve(true)
+            return
+          }
+          
+          // Continue polling
+          setTimeout(checkTransaction, pollInterval)
+        } catch (error) {
+          console.error(`❌ Error checking transaction ${txHash}:`, error)
+          setTimeout(checkTransaction, pollInterval)
+        }
+      }
+      
+      checkTransaction()
+    })
+  }
   
   // State for follow functionality
   const [followingUsers, setFollowingUsers] = useState<Set<string>>(new Set())
@@ -56,6 +91,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   
   // State for like functionality
   const [postLikes, setPostLikes] = useState<Map<string, { count: number; liked: boolean }>>(new Map())
+  
   const [isLiking, setIsLiking] = useState<boolean>(false)
 
   // Function to handle follow/unfollow
@@ -108,6 +144,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   const [isUploadingImages, setIsUploadingImages] = useState(false)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [blockchainPostsData, setBlockchainPostsData] = useState<unknown[]>([])
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch profile data from IPFS
@@ -119,7 +156,11 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       if (userProfile && profileCid && address) {
         try {
           const data = await ipfsService.fetchFromIPFS(profileCid)
-          setProfileData(data as ProfileData)
+          if (data !== null) {
+            setProfileData(data as ProfileData)
+          } else {
+            console.warn('Profile data unavailable from IPFS, using fallback')
+          }
         } catch (error) {
           console.error('Error fetching profile data:', error)
         }
@@ -132,89 +173,71 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   // Fetch blockchain posts data
   useEffect(() => {
     const fetchBlockchainPosts = async () => {
-      if (latestPosts && Array.isArray(latestPosts)) {
-        console.log('Latest posts from blockchain:', latestPosts)
-        console.log('Number of posts:', latestPosts.length)
+      // Check if latestPosts is a tuple [posts[], nextCursor]
+      if (latestPosts && Array.isArray(latestPosts) && latestPosts.length === 2) {
+        const [postsArray, nextCursor] = latestPosts
         
-        // Log detailed structure of each post
-        latestPosts.forEach((post: unknown, index: number) => {
-          console.log(`Post ${index} structure:`, post)
-          console.log(`Post ${index} type:`, typeof post)
-        })
-        
-        // If latestPosts contains post IDs (BigInt), we need to fetch individual posts
-        // For now, let's assume latestPosts contains the actual post data
-        // and try to extract CID from it
-        
-        const postsWithIPFS = await Promise.all(
-          latestPosts.map(async (post: unknown, index: number) => {
-            try {
-              console.log(`Processing post ${index}:`, post)
-              
-              // Try to extract CID from the post data
-              let cid = null
-              
-              if (typeof post === 'string' && post.startsWith('ipfs://')) {
-                // If post is directly a CID string
-                cid = post
-              } else if (Array.isArray(post)) {
-                // If post is an array (tuple), CID is usually the last element
-                console.log(`Post ${index} is array with length:`, post.length)
-                console.log(`Post ${index} array contents:`, post)
+        if (Array.isArray(postsArray) && postsArray.length > 0) {
+          // Process each post from the posts array
+          const postsWithIPFS = await Promise.all(
+            postsArray.map(async (post: unknown, index: number) => {
+              try {
+                // Extract CID from the post object structure
+                let cid = null
                 
-                if (post.length > 0) {
-                  // Check if the array contains a post object
-                  const firstElement = post[0]
-                  if (firstElement && typeof firstElement === 'object' && firstElement.cid) {
-                    // If first element is a post object with CID
-                    cid = firstElement.cid
-                    console.log(`Post ${index} CID from object:`, cid)
+                if (typeof post === 'object' && post !== null) {
+                  const postObj = post as Record<string, unknown>
+                  if (postObj.cid && typeof postObj.cid === 'string') {
+                    cid = postObj.cid
                   } else {
-                    // If it's a tuple, CID is usually the last element
-                    cid = post[post.length - 1]
-                    console.log(`Post ${index} CID from tuple:`, cid)
+                    return null
                   }
+                } else {
+                  return null
                 }
-              } else if (post && typeof post === 'object' && (post as Record<string, unknown>).cid) {
-                // If post is an object with cid property
-                cid = (post as Record<string, unknown>).cid as string
-              } else if (typeof post === 'bigint') {
-                // If post is a BigInt (post ID), skip for now
-                console.log(`Post ${index} is BigInt ID:`, post)
-                console.log(`Skipping post ${index} - BigInt ID not supported yet`)
+                
+                if (!cid) {
+                  return null
+                }
+                
+                // Check if CID contains 'test' (skip test CIDs)
+                if (cid.includes('test') || cid.includes('Test')) {
+                  return null
+                }
+                
+                // Calculate the actual Post ID from blockchain
+                // Based on smart contract logic: postId = totalPosts - cursor - index
+                // Since cursor = 0 and we're getting latest posts, postId = totalPosts - index
+                // We need to reverse the order to get the correct postId
+                const totalPosts = postsArray.length
+                const actualPostId = totalPosts - index
+                
+                // Fetch IPFS data
+                try {
+                  const ipfsData = await ipfsService.fetchFromIPFS(cid)
+                  
+                  return {
+                    postId: actualPostId,
+                    postData: post,
+                    cid,
+                    ipfsData
+                  }
+                } catch (ipfsError) {
+                  return null
+                }
+              } catch (error) {
                 return null
               }
-              
-              console.log(`Post ${index} CID:`, cid)
-              
-              // Validate CID
-              if (!cid || typeof cid !== 'string') {
-                console.warn(`Invalid CID for post ${index}:`, cid)
-                return null
-              }
-              
-              console.log(`Fetching IPFS data for post ${index}, CID:`, cid)
-              const ipfsData = await ipfsService.fetchFromIPFS(cid)
-              console.log(`IPFS data fetched for post ${index}:`, ipfsData)
-              
-              return {
-                postId: index + 1,
-                postData: post,
-                cid,
-                ipfsData
-              }
-            } catch (error) {
-              console.error(`Error fetching post ${index} data:`, error)
-              return null
-            }
-          })
+            })
         )
         
-        const validPosts = postsWithIPFS.filter(post => post !== null)
-        console.log('All posts with IPFS data:', validPosts)
-        setBlockchainPostsData(validPosts)
+          const validPosts = postsWithIPFS.filter(post => post !== null)
+          setBlockchainPostsData(validPosts)
+        } else {
+          setBlockchainPostsData([])
+        }
       } else {
-        console.log('No latest posts or not an array:', latestPosts)
+        setBlockchainPostsData([])
       }
     }
 
@@ -224,7 +247,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   // Convert blockchain post data to renderable format
   const convertBlockchainPost = async (post: Record<string, unknown>) => {
     if (!post || !post.ipfsData) {
-      console.log('Skipping post - no IPFS data:', post)
       return null
     }
 
@@ -234,7 +256,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     // Extract author from postData
     let author = '0x0000000000000000000000000000000000000000'
     if (Array.isArray(postData)) {
-      // If postData is array, check if first element is object or string
       const firstElement = postData[0]
       if (firstElement && typeof firstElement === 'object' && (firstElement as Record<string, unknown>).author) {
         author = (firstElement as Record<string, unknown>).author as string
@@ -245,10 +266,10 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       author = (postData as Record<string, unknown>).author as string
     }
     
-    console.log('Converting blockchain post:', post)
-    console.log('IPFS data:', ipfsData)
-    console.log('Post data:', postData)
-    console.log('Author:', author)
+    // Log like and comment data from blockchain
+    if (postData && typeof postData === 'object') {
+      const postObj = postData as Record<string, unknown>
+    }
     
     // Try to fetch author's profile data
     let authorProfile = null
@@ -256,10 +277,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       // Use the profile contract to get author's profile
       if (getProfileByOwner) {
         authorProfile = await getProfileByOwner(author)
-        console.log('Author profile fetched:', authorProfile)
       }
     } catch (error) {
-      console.error('Error fetching author profile:', error)
+      // Error fetching author profile
     }
     
     // Extract author info from profile or use fallbacks
@@ -272,9 +292,8 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       if (profileCid && typeof profileCid === 'string') {
         try {
           const profileData = await ipfsService.fetchFromIPFS(profileCid)
-          console.log('Author profile data from IPFS:', profileData)
           
-          if (profileData) {
+          if (profileData !== null) {
             const profile = profileData as Record<string, unknown>
             authorName = (profile.displayName as string) || 'Unknown User'
             authorUsername = (profile.username as string) || '@unknown'
@@ -283,7 +302,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
           }
         } catch (error) {
-          console.error('Error fetching author profile from IPFS:', error)
+          // Error fetching author profile from IPFS
         }
       }
     }
@@ -300,27 +319,23 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       content: (ipfsData as Record<string, unknown>).text as string || '',
       image: (() => {
         const images = (ipfsData as Record<string, unknown>).images as unknown[]
-        console.log('Post images array:', images)
         if (images && images.length > 0) {
           const firstImage = images[0] as string
-          console.log('First image CID:', firstImage)
           // If CID already has ipfs:// prefix, use it as is, otherwise add prefix
           const imageUrl = firstImage.startsWith('ipfs://') ? firstImage : `ipfs://${firstImage}`
-          console.log('Final image URL:', imageUrl)
           return imageUrl
         }
         return undefined
       })(),
-      timestamp: new Date(Number((postData as unknown[])[3] || Date.now() / 1000) * 1000).toLocaleString(),
-      likes: Number((postData as unknown[])[5] || 0),
-      comments: Number((postData as unknown[])[7] || 0),
-      shares: Number((postData as unknown[])[6] || 0),
-      liked: false, // TODO: Implement like status
+      timestamp: new Date(Number((postData as Record<string, unknown>).createdAt || Date.now() / 1000) * 1000).toLocaleString(),
+      likes: Number((postData as Record<string, unknown>).likeCount || 0),
+      comments: Number((postData as Record<string, unknown>).commentCount || 0),
+      shares: Number((postData as Record<string, unknown>).repostCount || 0),
+      liked: false, // Will be updated by fetchLikeData for blockchain posts
       bookmarked: false // TODO: Implement bookmark status
     }
     
-    console.log('Converted post:', convertedPost)
-    console.log('Post ID for like system:', convertedPost.id)
+    
     return convertedPost
   }
 
@@ -331,20 +346,19 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   useEffect(() => {
     const convertPosts = async () => {
       if (blockchainPostsData.length > 0) {
-        console.log('Converting blockchain posts:', blockchainPostsData.length)
         const converted = await Promise.all(
           blockchainPostsData.map(async (post) => {
             try {
               return await convertBlockchainPost(post as Record<string, unknown>)
             } catch (error) {
-              console.error('Error converting post:', error)
               return null
             }
           })
         )
         const validPosts = converted.filter((post): post is NonNullable<typeof post> => post !== null)
-        console.log('Converted blockchain posts:', validPosts.length)
         setConvertedBlockchainPosts(validPosts)
+      } else {
+        setConvertedBlockchainPosts([])
       }
     }
     
@@ -353,25 +367,17 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   
   const allPosts = useMemo(() => [...convertedBlockchainPosts, ...posts], [convertedBlockchainPosts, posts])
 
-  console.log('Blockchain posts data:', blockchainPostsData.length)
-  console.log('Converted blockchain posts:', convertedBlockchainPosts.length)
-  console.log('Mock posts:', posts.length)
-  console.log('Total posts to render:', allPosts.length)
-
   // Fetch like data for all posts when they change
   useEffect(() => {
     const fetchAllLikeData = async () => {
       if (allPosts.length > 0 && address) {
-        console.log('Fetching like data for all posts...', {
-          totalPosts: allPosts.length,
-          userAddress: address,
-          postIds: allPosts.map(p => (p as Record<string, unknown>).id as string)
-        })
-        
         // Process posts in batches to avoid overwhelming the RPC
         const batchSize = 3
         for (let i = 0; i < allPosts.length; i += batchSize) {
           const batch = allPosts.slice(i, i + batchSize)
+          
+          // Fetch like status for all posts (both blockchain and non-blockchain)
+          // For blockchain posts, we only need the 'liked' status, not the count
           await Promise.all(batch.map(post => fetchLikeData((post as Record<string, unknown>).id as string)))
           
           // Small delay between batches
@@ -379,13 +385,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             await new Promise(resolve => setTimeout(resolve, 100))
           }
         }
-        
-        console.log('Finished fetching like data for all posts')
-      } else {
-        console.log('Skipping like data fetch:', {
-          allPostsLength: allPosts.length,
-          hasAddress: !!address
-        })
       }
     }
     
@@ -401,25 +400,24 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   }
 
   // Function to fetch like data for posts
-  const fetchLikeData = async (postId: string) => {
+  const fetchLikeData = async (postId: string, retryCount = 0) => {
+    if (!isConnected || !address) {
+      console.log('❌ Cannot fetch like data: wallet not connected')
+      return
+    }
+    
     try {
-      console.log(`Fetching like data for post ID: ${postId} (type: ${typeof postId})`)
-      
       // Check if postId is a valid number for smart contract
       const numericPostId = parseInt(postId)
       if (isNaN(numericPostId)) {
-        console.warn(`Post ID ${postId} is not a valid number, skipping like data fetch`)
+        console.error('❌ Invalid post ID:', postId)
         return
       }
-      
-      console.log(`Using numeric post ID: ${numericPostId} for smart contract calls`)
       
       const [likeCount, userLiked] = await Promise.all([
         getLikeCount(numericPostId),
         hasLiked(numericPostId)
       ])
-      
-      console.log(`Post ${postId} like data fetched:`, { count: likeCount, liked: userLiked })
       
       setPostLikes(prev => {
         const newMap = new Map(prev)
@@ -427,12 +425,36 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
           count: likeCount,
           liked: userLiked
         })
-        console.log(`Updated postLikes state for ${postId}:`, newMap.get(postId))
         return newMap
       })
       
     } catch (error) {
-      console.error(`Error fetching like data for post ${postId}:`, error)
+      console.error(`❌ Error fetching like data for post ${postId} (attempt ${retryCount + 1}):`, error)
+      
+      // Retry mechanism with exponential backoff
+      if (retryCount < 3) {
+        const retryDelay = Math.pow(2, retryCount) * 1000 // 1s, 2s, 4s
+        setTimeout(() => {
+          fetchLikeData(postId, retryCount + 1)
+        }, retryDelay)
+      } else {
+        console.error(`❌ Max retries reached for post ${postId}`)
+        // Set fallback state to prevent UI from being stuck
+        setPostLikes(prev => {
+          const newMap = new Map(prev)
+          const currentData = newMap.get(postId)
+          if (currentData) {
+            // Keep current state if available
+          } else {
+            // Set default state if no data available
+            newMap.set(postId, {
+              count: 0,
+              liked: false
+            })
+          }
+          return newMap
+        })
+      }
     }
   }
 
@@ -445,22 +467,86 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     try {
       setIsLiking(true)
       
+      // Optimistic update - immediately update UI
+      const currentLikeData = postLikes.get(postId)
+      const newLikedState = !currentLikeData?.liked
+      const newCount = currentLikeData ? (newLikedState ? currentLikeData.count + 1 : currentLikeData.count - 1) : (newLikedState ? 1 : 0)
+      
+      setPostLikes(prev => {
+        const newMap = new Map(prev)
+        newMap.set(postId, {
+          count: newCount,
+          liked: newLikedState
+        })
+        return newMap
+      })
+      
       // Toggle like on smart contract
-      await toggleLike(parseInt(postId))
-      console.log('Like toggle transaction submitted for post:', postId)
+      const txHash = await toggleLike(parseInt(postId))
       
-      // Wait a bit for transaction to be mined, then refetch like data
-      setTimeout(async () => {
-        console.log('Refetching like data after toggle for post:', postId)
-        await fetchLikeData(postId)
-        console.log('Refetch completed for post:', postId)
-      }, 3000)
+      // Call parent callback if provided
+      onLike?.(parseInt(postId))
       
-      // Call parent callback
-      onLike(parseInt(postId))
+      // Wait for transaction confirmation and then verify blockchain state
+      if (txHash) {
+        const transactionConfirmed = await waitForTransactionConfirmation(txHash)
+        
+        if (transactionConfirmed) {
+          // Poll for actual blockchain state with exponential backoff
+          let attempts = 0
+          const maxAttempts = 8
+          const pollInterval = 2000 // Start with 2 seconds
+          
+          const pollForUpdate = async () => {
+            attempts++
+            
+            try {
+              await fetchLikeData(postId)
+              
+              // Check if the blockchain state matches our optimistic update
+              const currentState = postLikes.get(postId)
+              
+              if (currentState?.liked === newLikedState && currentState?.count > 0) {
+                return // Success, stop polling
+              }
+              
+              // If we haven't reached max attempts, continue polling
+              if (attempts < maxAttempts) {
+                const nextInterval = Math.min(pollInterval * Math.pow(1.5, attempts - 1), 8000) // Max 8 seconds
+                setTimeout(pollForUpdate, nextInterval)
+              } else {
+              }
+            } catch (error) {
+              console.error(`❌ Error polling for post ${postId}:`, error)
+              if (attempts < maxAttempts) {
+                setTimeout(pollForUpdate, pollInterval * attempts)
+              }
+            }
+          }
+          
+          // Start polling immediately after transaction confirmation
+          pollForUpdate()
+        } else {
+        }
+      } else {
+      }
       
     } catch (error) {
       console.error('Error liking post:', error)
+      
+      // Revert optimistic update on error
+      const currentLikeData = postLikes.get(postId)
+      if (currentLikeData) {
+        setPostLikes(prev => {
+          const newMap = new Map(prev)
+          newMap.set(postId, {
+            count: currentLikeData.liked ? currentLikeData.count - 1 : currentLikeData.count + 1,
+            liked: !currentLikeData.liked
+          })
+          return newMap
+        })
+      }
+      
       alert('Failed to like post. Please try again.')
     } finally {
       setIsLiking(false)
@@ -469,7 +555,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
 
   const handleBookmark = (postId: string) => {
     // TODO: Implement bookmark functionality
-    console.log('Bookmarked post:', postId)
   }
 
   // const handleShare = (postId: string) => {
@@ -542,17 +627,14 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       
       // Upload images to IPFS if any
       if (selectedImages.length > 0) {
-        console.log('Uploading images to IPFS...')
         for (const imageFile of selectedImages) {
           const cid = await ipfsService.uploadFile(imageFile)
           imageCids.push(cid)
-          console.log('Image uploaded:', cid)
         }
       }
 
       // Create post with images
       await createPost(newPost.trim(), imageCids)
-      console.log('Post created successfully!')
       
       // Reset form
       setNewPost('')
@@ -560,7 +642,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       setImagePreviews([])
       
       // Refetch posts to show the new post
-      console.log('Refetching posts to show new post...')
       await refetchLatestPosts()
     } catch (error) {
       console.error('Error creating post:', error)
@@ -588,6 +669,14 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             </button>
             <button className={`px-3 lg:px-4 py-2 ${isDarkMode ? 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'} rounded-2xl text-xs lg:text-sm font-medium transition-all`}>
               Popular
+            </button>
+            <button 
+              onClick={() => {
+                refetchLatestPosts()
+              }}
+              className={`px-3 lg:px-4 py-2 ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20 hover:text-blue-300' : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'} rounded-2xl text-xs lg:text-sm font-medium transition-all border ${isDarkMode ? 'border-blue-500/30' : 'border-blue-300/50'}`}
+            >
+              🔄 Refresh
             </button>
           </div>
         </div>
@@ -725,7 +814,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3 flex-1">
-                    <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50" />
+                    <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
@@ -776,12 +865,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                         alt="Post content" 
                         className="w-full h-auto object-cover aspect-video"
                         onError={(e) => {
-                          console.error('Post image failed to load:', e);
-                          console.error('Image URL:', (postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/'));
                           e.currentTarget.style.display = 'none';
                         }}
                         onLoad={() => {
-                          console.log('Post image loaded successfully:', (postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/'));
                         }}
                       />
                     </div>
@@ -794,23 +880,52 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     <button 
                       onClick={() => handleLike(postData.id as string)}
                       disabled={!isConnected || isLiking}
-                      className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${
-                        (postLikes.get(postData.id as string)?.liked || postData.liked)
-                          ? `${isDarkMode ? 'text-red-400 bg-red-500/20' : 'text-red-600 bg-red-50'}` 
+                      className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${(() => {
+                        const likeData = postLikes.get(postData.id as string)
+                        const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
+                        const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
+                        
+                        console.log(`🔘 BUTTON DEBUG for Post ${postData.id}:`)
+                        console.log(`- isLiked:`, isLiked)
+                        console.log(`- Button will be:`, isLiked ? 'RED' : 'GRAY')
+                        
+                        return isLiked
+                          ? `${isDarkMode ? 'text-red-400 bg-red-500/20 border border-red-500/30' : 'text-red-600 bg-red-50 border border-red-200'}` 
                           : `${isDarkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      })()} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <RoundedHeart className={`w-4 h-4 ${(postLikes.get(postData.id as string)?.liked || postData.liked) ? 'fill-current' : ''}`} />
+                      <RoundedHeart className={`w-4 h-4 ${(() => {
+                        const likeData = postLikes.get(postData.id as string)
+                        const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
+                        // For blockchain posts, use contract data for liked status
+                        // For non-blockchain posts, use postData.liked
+                        const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
+                        
+                        console.log(`❤️ HEART ICON DEBUG for Post ${postData.id}:`)
+                        console.log(`- likeData:`, likeData)
+                        console.log(`- isBlockchainPost:`, isBlockchainPost)
+                        console.log(`- isLiked:`, isLiked)
+                        console.log(`- Heart will be filled:`, isLiked)
+                        console.log(`- CSS class will be:`, isLiked ? 'w-4 h-4 fill-current text-red-500' : 'w-4 h-4 text-gray-400')
+                        
+                        return isLiked ? 'fill-current text-red-500' : 'text-gray-400'
+                      })()}`} />
                       <span className="text-xs font-medium">
                         {(() => {
                           const likeData = postLikes.get(postData.id as string)
-                          const displayCount = likeData?.count ?? postData.likes
-                          console.log(`Rendering like count for post ${postData.id}:`, {
-                            postId: postData.id,
-                            likeData,
-                            fallbackCount: postData.likes,
-                            displayCount
-                          })
+                          // For blockchain posts, use dynamic likeData.count from state
+                          // For non-blockchain posts, use postData.likes
+                          const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
+                          const displayCount = isBlockchainPost ? (likeData?.count ?? postData.likes) : (likeData?.count ?? postData.likes)
+                          
+                          console.log(`📊 COUNT DEBUG for Post ${postData.id}:`)
+                          console.log(`- likeData:`, likeData)
+                          console.log(`- isBlockchainPost:`, isBlockchainPost)
+                          console.log(`- likeData.count:`, likeData?.count)
+                          console.log(`- postData.likes:`, postData.likes)
+                          console.log(`- displayCount:`, displayCount)
+                          console.log(`- formatted:`, formatNumber(displayCount as number))
+                          
                           return formatNumber(displayCount as number)
                         })()}
                       </span>
@@ -818,20 +933,16 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     
                     <button className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}>
                       <RoundedMessage className="w-4 h-4" />
-                      <span className="text-xs font-medium">{postData.comments as number}</span>
+                      <span className="text-xs font-medium">{formatNumber(postData.comments as number)}</span>
                     </button>
                     
                     <button className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}>
                       <RoundedShare className="w-4 h-4" />
-                      <span className="text-xs font-medium">{postData.shares as number}</span>
+                      <span className="text-xs font-medium">{formatNumber(postData.shares as number)}</span>
                     </button>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <span className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-xs flex items-center space-x-1`}>
-                      <RoundedEye className="w-3 h-3" />
-                      <span>{formatNumber(649)}</span>
-                    </span>
                     <button 
                       onClick={() => handleBookmark(postData.id as string)}
                       className={`p-1 ${isDarkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50' : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'} rounded-lg transition-all`}

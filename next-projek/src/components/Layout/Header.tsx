@@ -18,11 +18,11 @@ import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
 
 interface HeaderProps {
   isDarkMode: boolean
-  setIsDarkMode: (value: boolean) => void
+  toggleDarkMode: () => void
   onShowProfile?: () => void
 }
 
-export default function Header({ isDarkMode, setIsDarkMode, onShowProfile }: HeaderProps) {
+export default function Header({ isDarkMode, toggleDarkMode, onShowProfile }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const { address, isConnected } = useAccount()
   const { userProfile, hasProfile } = useProfileContract()
@@ -89,7 +89,7 @@ export default function Header({ isDarkMode, setIsDarkMode, onShowProfile }: Hea
             
             {/* Dark Mode Toggle */}
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleDarkMode}
               className={`p-2 xl:p-3 rounded-xl transition-all hover:scale-105 ${
                 isDarkMode 
                   ? 'bg-slate-800/80 text-yellow-400 hover:bg-slate-700/80' 

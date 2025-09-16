@@ -41,22 +41,35 @@ contract ProfileRegistry is ERC2771Context, Ownable, ReentrancyGuard {
     mapping(address => Profile) private _profilesByOwner;
     mapping(bytes32 => address) private _handleOwner;
     mapping(uint64 => Profile) private _profilesById;
+    address public badgesContract; // Address of Badges contract
 
     constructor(address trustedForwarder) ERC2771Context(trustedForwarder) Ownable() {}
+
+    /**
+     * @dev Set the badges contract address
+     * @param _badgesContract Address of the Badges contract
+     */
+    function setBadgesContract(address _badgesContract) external onlyOwner {
+        badgesContract = _badgesContract;
+    }
 
     /**
      * @dev Create a new profile with unique handle
      * @param usernameLower Lowercase username (must be unique)
      * @param profileCid IPFS CID for profile JSON content
+     * @param user User address (for gasless transactions, use address(0) for regular transactions)
      */
     function createProfile(
         string calldata usernameLower, 
-        string calldata profileCid
+        string calldata profileCid,
+        address user
     ) external nonReentrant {
-        address user = _msgSender();
+        // For gasless transactions, use provided user address
+        // For regular transactions, use _msgSender()
+        address actualUser = user != address(0) ? user : _msgSender();
         
         // Check if user already has a profile
-        if (_profilesByOwner[user].userId != 0) {
+        if (_profilesByOwner[actualUser].userId != 0) {
             revert ProfileAlreadyExists();
         }
 
@@ -77,7 +90,7 @@ contract ProfileRegistry is ERC2771Context, Ownable, ReentrancyGuard {
         uint64 userId = _nextUserId++;
         Profile memory newProfile = Profile({
             userId: userId,
-            owner: user,
+            owner: actualUser,
             handleHash: handleHash,
             profileCid: profileCid,
             createdAt: uint64(block.timestamp),
@@ -85,11 +98,23 @@ contract ProfileRegistry is ERC2771Context, Ownable, ReentrancyGuard {
         });
 
         // Store profile
-        _profilesByOwner[user] = newProfile;
-        _handleOwner[handleHash] = user;
+        _profilesByOwner[actualUser] = newProfile;
+        _handleOwner[handleHash] = actualUser;
         _profilesById[userId] = newProfile;
 
-        emit ProfileCreated(user, userId, handleHash, profileCid);
+        emit ProfileCreated(actualUser, userId, handleHash, profileCid);
+        
+        // Auto-assign beginner badge if badges contract is set
+        if (badgesContract != address(0)) {
+            // Call assignBeginnerBadge on Badges contract
+            (bool success, ) = badgesContract.call(
+                abi.encodeWithSignature("assignBeginnerBadge(address,address)", actualUser, address(this))
+            );
+            if (!success) {
+                // If badge assignment fails, don't revert the profile creation
+                // Just emit an event or log the failure
+            }
+        }
     }
 
     /**

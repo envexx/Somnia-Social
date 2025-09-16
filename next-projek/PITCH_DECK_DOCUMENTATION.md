@@ -66,15 +66,15 @@ Built for the next billion Web3 users
 ```
 🏗️ System Architecture:
 
-Smart Contracts (Somnia Network):
-├── ProfileRegistry (User Management)
-├── PostFeed (Content System)
-├── Reactions (Like/Comment System)
-├── Badges (Achievement System)
-├── BatchRelayer (Gasless Transactions)
-└── TrustedForwarder (Meta-transactions)
+Smart Contracts (Somnia Testnet):
+├── ProfileRegistry (0x6F84bfb8Ef32ec20016AcD8A53F28e75FD5d2101)
+├── PostFeed (0x3feeF59e911f0B2cC641711AAf7fB20F5DE7331A)
+├── Reactions (0xdE8abe80D03Aa65E8683AA4eEdFa0690B3408d7F)
+├── Badges (0xf0F39Fd073De8bf6AEDB9B54f36f62af32ce8a19)
+├── BatchRelayer (0xC7cFc7a96150816176C44F0CcD1066a781CEEB82)
+└── TrustedForwarder (0xbD33c607d68de499cA76d4F6187ef1e43a094e9C)
 
-Frontend (Next.js + React):
+Frontend (Next.js 15 + React 19):
 ├── Responsive Mobile/Desktop UI
 ├── Real-time Updates
 ├── IPFS Integration
@@ -97,7 +97,7 @@ Frontend (Next.js + React):
 
 3. Tiered Badge System
    • ERC-1155 non-transferable badges
-   • 4-tier achievement system
+   • 4-tier achievement system (Explorer, Influencer, Leader, Legend)
    • Automatic progression tracking
 
 4. Mobile-First Web3
@@ -375,20 +375,21 @@ GitHub: [Repository Link]
 ### **Smart Contract Architecture**
 ```solidity
 // Core Contracts Deployed on Somnia Testnet
-ProfileRegistry: 0x6d875afD94B7B133083177De3d805Fa65A50557B
-PostFeed: 0xCbfCb1152880Efae5838e9c99dED04F41A819de5
-Reactions: 0x5531df40f1a0A8BbC4246eBaE35b41a21143f566
-Badges: 0xb0E6dc49D425db0E7EF19378A635441d4cB1714f
-BatchRelayer: 0xB61dA5F9ED4c13C130BD33039d8D6583C50cd17d
-TrustedForwarder: 0x2E8Fe3b78E82179210d25339BB72e34481739D72
+ProfileRegistry: 0x6F84bfb8Ef32ec20016AcD8A53F28e75FD5d2101
+PostFeed: 0x3feeF59e911f0B2cC641711AAf7fB20F5DE7331A
+Reactions: 0xdE8abe80D03Aa65E8683AA4eEdFa0690B3408d7F
+Badges: 0xf0F39Fd073De8bf6AEDB9B54f36f62af32ce8a19
+BatchRelayer: 0xC7cFc7a96150816176C44F0CcD1066a781CEEB82
+TrustedForwarder: 0xbD33c607d68de499cA76d4F6187ef1e43a094e9C
 ```
 
 ### **Technology Stack**
 - **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
 - **Web3**: Wagmi, RainbowKit, Ethers.js, Viem
 - **Storage**: IPFS via Web3.Storage
-- **Backend**: Smart contracts on Somnia Network
+- **Backend**: Smart contracts on Somnia Testnet
 - **Deployment**: Vercel, Somnia Testnet
+- **Badge System**: ERC-1155 non-transferable NFTs (Explorer, Influencer, Leader, Legend)
 
 ### **Security Features**
 - **Smart Contract Security**

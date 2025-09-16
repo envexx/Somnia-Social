@@ -6,6 +6,7 @@ import { ethers } from 'ethers'
 import { CONTRACT_ADDRESSES, PROFILE_REGISTRY_ABI, POST_FEED_ABI, REACTIONS_ABI, BADGES_ABI } from '@/lib/web3-config'
 import { ipfsService, createProfileData, createPostData, PostData, ProfileData } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
+import { useGaslessTransactions } from './useGaslessTransactions'
 
 export function useProfileContract() {
   const { address } = useAccount()
@@ -175,34 +176,28 @@ export function useProfileContract() {
 
   const createProfileWithIPFS = async (username: string, displayName: string, bio?: string, avatar?: string, location?: string, links?: Record<string, unknown>) => {
     try {
-      console.log('Starting profile creation process...')
+      console.log('Starting profile creation process (user pays gas)...')
       
-      // Create profile data with all fields
+      if (!address) {
+        throw new Error('No wallet address found. Please connect your wallet.')
+      }
+      
+      // Create profile data and upload to IPFS
       const profileData = createProfileData(username, displayName, bio, avatar, location, links)
-      console.log('Profile data created:', profileData)
-      
-      // Upload to IPFS
-      console.log('Uploading profile data to IPFS...')
       const profileCid = await ipfsService.uploadProfile(profileData)
-      console.log('Profile data uploaded to IPFS:', profileCid)
-      
-      // Create profile on-chain
-      console.log('Creating profile on smart contract...')
-      console.log('Contract address:', CONTRACT_ADDRESSES.ProfileRegistry)
-      console.log('Username:', username.toLowerCase())
-      console.log('Profile CID:', profileCid)
-      
+      console.log('Profile uploaded to IPFS:', profileCid)
+
+      // Create profile on blockchain (user pays gas)
       const txHash = await createProfile({
         address: CONTRACT_ADDRESSES.ProfileRegistry as `0x${string}`,
         abi: PROFILE_REGISTRY_ABI,
         functionName: 'createProfile',
-        args: [username.toLowerCase(), profileCid],
+        args: [username.toLowerCase(), profileCid, address],
       })
-      
+
       console.log('Profile creation transaction submitted:', txHash)
-      console.log('Waiting for transaction confirmation...')
       
-      // Wait longer for transaction to be mined, then refetch data
+      // Refetch profile data after successful creation
       setTimeout(async () => {
         console.log('Refetching profile data after creation...')
         try {
@@ -213,7 +208,7 @@ export function useProfileContract() {
         } catch (error) {
           console.error('Error refetching profile data:', error)
         }
-      }, 5000) // Increased to 5 seconds
+      }, 5000)
       
       return txHash
     } catch (error) {
@@ -312,6 +307,7 @@ export function useProfileContract() {
 
 export function usePostContract() {
   const { address } = useAccount()
+  const { createGaslessPost } = useGaslessTransactions()
   
   const { data: totalPosts } = useReadContract({
     address: CONTRACT_ADDRESSES.PostFeed as `0x${string}`,
@@ -320,12 +316,54 @@ export function usePostContract() {
     args: address ? [address] : undefined,
   })
 
-  const { data: latestPosts, refetch: refetchLatestPosts } = useReadContract({
+  const { data: globalTotalPosts } = useReadContract({
+    address: CONTRACT_ADDRESSES.PostFeed as `0x${string}`,
+    abi: POST_FEED_ABI,
+    functionName: 'getTotalPosts',
+  })
+
+  const { data: latestPosts, refetch: refetchLatestPosts, error: latestPostsError, isLoading: latestPostsLoading } = useReadContract({
     address: CONTRACT_ADDRESSES.PostFeed as `0x${string}`,
     abi: POST_FEED_ABI,
     functionName: 'latest',
     args: [BigInt(0), BigInt(10)], // cursor: 0, limit: 10
   })
+
+  // Debug logging for latestPosts
+  useEffect(() => {
+    console.log('=== LATEST POSTS DEBUG ===')
+    console.log('latestPosts:', latestPosts)
+    console.log('latestPosts type:', typeof latestPosts)
+    console.log('latestPosts is array:', Array.isArray(latestPosts))
+    console.log('latestPosts length:', latestPosts ? latestPosts.length : 'N/A')
+    
+    // Check if latestPosts is a tuple [posts[], nextCursor]
+    if (Array.isArray(latestPosts) && latestPosts.length === 2) {
+      console.log('latestPosts is tuple with 2 elements')
+      console.log('First element (posts):', latestPosts[0])
+      console.log('Second element (nextCursor):', latestPosts[1])
+      console.log('Posts array length:', Array.isArray(latestPosts[0]) ? latestPosts[0].length : 'Not an array')
+      
+      if (Array.isArray(latestPosts[0]) && latestPosts[0].length > 0) {
+        console.log('First post structure:', latestPosts[0][0])
+      }
+    }
+    
+    console.log('latestPostsError:', latestPostsError)
+    console.log('latestPostsLoading:', latestPostsLoading)
+    
+    // If there's an error, log it
+    if (latestPostsError) {
+      console.error('LATEST POSTS ERROR:', latestPostsError)
+    }
+    
+    // If loading, log it
+    if (latestPostsLoading) {
+      console.log('LATEST POSTS LOADING...')
+    }
+    
+    console.log('=== END LATEST POSTS DEBUG ===')
+  }, [latestPosts, latestPostsError, latestPostsLoading])
 
   const { data: userPosts, refetch: refetchUserPosts } = useReadContract({
     address: CONTRACT_ADDRESSES.PostFeed as `0x${string}`,
@@ -393,29 +431,24 @@ export function usePostContract() {
     try {
       if (!address) throw new Error('Wallet not connected')
       
-      // Create post data
-      const postData = createPostData(text, address, 'post', images, embeds)
+      console.log('Starting gasless post creation process...')
       
-      // Upload to IPFS
-      const postCid = await ipfsService.uploadPost(postData)
+      // Use gasless post creation
+      const result = await createGaslessPost(text, images, embeds, replyTo, repostOf)
       
-      // Create post on-chain
-      const txHash = await createPost({
-        address: CONTRACT_ADDRESSES.PostFeed as `0x${string}`,
-        abi: POST_FEED_ABI,
-        functionName: 'createPost',
-        args: [postCid, BigInt(replyTo || 0), BigInt(repostOf || 0)],
-      })
-      
-      console.log('Post creation transaction submitted:', txHash)
-      
-      // Wait a bit for transaction to be mined, then refetch posts
-      setTimeout(async () => {
-        console.log('Refetching posts after creation...')
-        await refetchLatestPosts()
-      }, 3000)
-      
-      return txHash
+      if (result.success) {
+        console.log('Gasless post creation transaction submitted:', result.txHash)
+        
+        // Wait a bit for transaction to be mined, then refetch posts
+        setTimeout(async () => {
+          console.log('Refetching posts after creation...')
+          await refetchLatestPosts()
+        }, 3000)
+        
+        return result.txHash
+      } else {
+        throw new Error(result.error || 'Failed to create post')
+      }
     } catch (error) {
       console.error('Error creating post:', error)
       throw error
@@ -435,6 +468,7 @@ export function usePostContract() {
 
   return {
     totalPosts,
+    globalTotalPosts,
     latestPosts,
     userPosts,
     createPost: createPostWithIPFS,
@@ -442,11 +476,15 @@ export function usePostContract() {
     refetchLatestPosts,
     refetchUserPosts,
     getPostById,
+    // Debug data
+    latestPostsError,
+    latestPostsLoading,
   }
 }
 
 export function useReactionsContract() {
   const { address } = useAccount()
+  const { toggleGaslessLike } = useGaslessTransactions()
   
   const { writeContractAsync: toggleLikeAsync } = useWriteContract()
 
@@ -457,17 +495,17 @@ export function useReactionsContract() {
     }
 
     try {
-      console.log(`Toggling like for post ${postId}`)
+      console.log(`Toggling gasless like for post ${postId}`)
       
-      const txHash = await toggleLikeAsync({
-        address: CONTRACT_ADDRESSES.Reactions as `0x${string}`,
-        abi: REACTIONS_ABI,
-        functionName: 'toggleLike',
-        args: [BigInt(postId)],
-      })
+      // Use gasless like toggle
+      const result = await toggleGaslessLike(postId)
       
-      console.log('Like toggle transaction submitted:', txHash)
-      return txHash
+      if (result.success) {
+        console.log('Gasless like toggle transaction submitted:', result.txHash)
+        return result.txHash
+      } else {
+        throw new Error(result.error || 'Failed to toggle like')
+      }
     } catch (error) {
       console.error('Error toggling like:', error)
       throw error
@@ -476,12 +514,21 @@ export function useReactionsContract() {
 
   // Function to check if user has liked a post
   const hasLiked = async (postId: number): Promise<boolean> => {
-    if (!address) return false
+    if (!address) {
+      return false
+    }
+
+    // Validate postId
+    if (isNaN(postId) || postId <= 0) {
+      console.warn(`Invalid postId: ${postId}`)
+      return false
+    }
 
     try {
       // Use fetch to call the RPC directly
       const contractInterface = new ethers.Interface(REACTIONS_ABI)
-      const functionData = contractInterface.encodeFunctionData('hasLiked', [BigInt(postId), address])
+      // Contract expects uint64 postId, address user - convert number to uint64
+      const functionData = contractInterface.encodeFunctionData('hasLiked', [postId, address])
       
       const response = await fetch(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network', {
         method: 'POST',
@@ -504,11 +551,9 @@ export function useReactionsContract() {
       })
       
       const data = await response.json()
-      console.log(`Has liked ${postId} RPC response:`, data)
       
       // Check for RPC errors
       if (data.error) {
-        console.error(`RPC error checking like status for post ${postId}:`, data.error)
         return false
       }
       
@@ -526,9 +571,16 @@ export function useReactionsContract() {
 
   // Function to get like count for a post
   const getLikeCount = async (postId: number): Promise<number> => {
+    // Validate postId
+    if (isNaN(postId) || postId <= 0) {
+      console.warn(`Invalid postId: ${postId}`)
+      return 0
+    }
+
     try {
       const contractInterface = new ethers.Interface(REACTIONS_ABI)
-      const functionData = contractInterface.encodeFunctionData('getLikeCount', [BigInt(postId)])
+      // Contract expects uint64 postId
+      const functionData = contractInterface.encodeFunctionData('getLikeCount', [postId])
       
       const response = await fetch(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network', {
         method: 'POST',

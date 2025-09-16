@@ -12,13 +12,6 @@ async function main() {
   console.log(`Balance: ${ethers.utils.formatEther(await deployer.getBalance())} ETH`);
   console.log('');
 
-  // Check if we have enough balance
-  const balance = await deployer.getBalance();
-  if (balance.lt(ethers.utils.parseEther('0.1'))) {
-    console.log('⚠️  WARNING: Low balance detected. Please ensure you have enough ETH for deployment.');
-    console.log('');
-  }
-
   const deployedContracts = {};
 
   try {
@@ -217,6 +210,16 @@ async function main() {
 
   } catch (error) {
     console.error('❌ DEPLOYMENT FAILED:', error);
+    
+    // Show partial deployment results
+    if (Object.keys(deployedContracts).length > 0) {
+      console.log('');
+      console.log('📋 PARTIALLY DEPLOYED CONTRACTS:');
+      Object.entries(deployedContracts).forEach(([name, address]) => {
+        console.log(`   ${name}: ${address}`);
+      });
+    }
+    
     process.exit(1);
   }
 }

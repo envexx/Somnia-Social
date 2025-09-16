@@ -70,14 +70,18 @@ contract PostFeed is ERC2771Context, Ownable, ReentrancyGuard {
      * @param cid IPFS CID for post/comment JSON content
      * @param replyTo Post ID being replied to (0 for main posts)
      * @param repostOf Post ID being reposted (0 for original posts)
+     * @param user User address (for gasless transactions, use address(0) for regular transactions)
      * @return postId The ID of the created post
      */
     function createPost(
         string calldata cid, 
         uint64 replyTo, 
-        uint64 repostOf
+        uint64 repostOf,
+        address user
     ) external nonReentrant returns (uint64 postId) {
-        address author = _msgSender();
+        // For gasless transactions, use provided user address
+        // For regular transactions, use _msgSender()
+        address actualAuthor = user != address(0) ? user : _msgSender();
         
         // Validate replyTo if it's a comment
         if (replyTo > 0) {
@@ -96,7 +100,7 @@ contract PostFeed is ERC2771Context, Ownable, ReentrancyGuard {
         postId = _nextPostId++;
         
         Post memory newPost = Post({
-            author: author,
+            author: actualAuthor,
             replyTo: replyTo,
             repostOf: repostOf,
             createdAt: uint64(block.timestamp),
@@ -108,7 +112,7 @@ contract PostFeed is ERC2771Context, Ownable, ReentrancyGuard {
         });
 
         _posts[postId] = newPost;
-        _userPosts[author].push(postId);
+        _userPosts[actualAuthor].push(postId);
 
         // If this is a comment, update parent's comment count
         if (replyTo > 0) {
@@ -124,7 +128,7 @@ contract PostFeed is ERC2771Context, Ownable, ReentrancyGuard {
             emit PostCountsUpdated(repostOf, _posts[repostOf].likeCount, _posts[repostOf].repostCount);
         }
 
-        emit PostCreated(postId, author, cid, replyTo, repostOf, newPost.createdAt);
+        emit PostCreated(postId, actualAuthor, cid, replyTo, repostOf, newPost.createdAt);
     }
 
     /**

@@ -37,24 +37,27 @@ contract Reactions is ERC2771Context, Ownable, ReentrancyGuard {
     /**
      * @dev Toggle like status for a post
      * @param postId Post ID to like/unlike
+     * @param user User address to toggle like for (for gasless transactions)
      */
-    function toggleLike(uint64 postId) external nonReentrant {
-        address user = _msgSender();
+    function toggleLike(uint64 postId, address user) external nonReentrant {
+        // For gasless transactions, use provided user address
+        // For regular transactions, use _msgSender()
+        address actualUser = user != address(0) ? user : _msgSender();
         
         if (postFeedContract == address(0)) {
             revert PostFeedNotSet();
         }
 
-        bool currentlyLiked = _liked[postId][user];
+        bool currentlyLiked = _liked[postId][actualUser];
         
         if (currentlyLiked) {
             // Unlike the post
-            _liked[postId][user] = false;
+            _liked[postId][actualUser] = false;
             
             // Remove user from likers array
             address[] storage likers = _likers[postId];
             for (uint256 i = 0; i < likers.length; i++) {
-                if (likers[i] == user) {
+                if (likers[i] == actualUser) {
                     likers[i] = likers[likers.length - 1];
                     likers.pop();
                     break;
@@ -67,11 +70,11 @@ contract Reactions is ERC2771Context, Ownable, ReentrancyGuard {
             );
             require(success, "Failed to decrement like count");
             
-            emit LikeToggled(postId, user, false);
+            emit LikeToggled(postId, actualUser, false);
         } else {
             // Like the post
-            _liked[postId][user] = true;
-            _likers[postId].push(user);
+            _liked[postId][actualUser] = true;
+            _likers[postId].push(actualUser);
             
             // Increment like count in PostFeed
             (bool success, ) = postFeedContract.call(
@@ -79,7 +82,7 @@ contract Reactions is ERC2771Context, Ownable, ReentrancyGuard {
             );
             require(success, "Failed to increment like count");
             
-            emit LikeToggled(postId, user, true);
+            emit LikeToggled(postId, actualUser, true);
         }
     }
 

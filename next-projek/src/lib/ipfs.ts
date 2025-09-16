@@ -90,7 +90,7 @@ class IPFSService {
     }
   }
 
-  // Fetch content from IPFS with caching
+  // Fetch content from IPFS with caching and fallback
   async fetchFromIPFS(cid: string): Promise<unknown> {
     try {
       // Check cache first
@@ -111,28 +111,61 @@ class IPFSService {
       }
       
       const cidWithoutPrefix = cid.replace('ipfs://', '')
-      const url = `${this.gateway}${cidWithoutPrefix}`
       
-      console.log('Fetching from URL:', url)
+      // List of gateways to try
+      const gateways = [
+        this.gateway,
+        'https://ipfs.io/ipfs/',
+        'https://gateway.pinata.cloud/ipfs/',
+        'https://cloudflare-ipfs.com/ipfs/'
+      ]
       
-      const response = await fetch(url)
-      console.log('Response status:', response.status)
-      console.log('Response ok:', response.ok)
+      let lastError: Error | null = null
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from IPFS: ${response.statusText}`)
+      // Try each gateway
+      for (const gateway of gateways) {
+        try {
+          const url = `${gateway}${cidWithoutPrefix}`
+          console.log('Trying gateway:', gateway)
+          console.log('Fetching from URL:', url)
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          })
+          
+          console.log('Response status:', response.status)
+          console.log('Response ok:', response.ok)
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log('IPFS data fetched successfully from:', gateway)
+            console.log('IPFS data:', data)
+            
+            // Cache the data
+            cacheService.set(cacheKey, data, CACHE_TTL.IPFS_DATA)
+            console.log('IPFS data cached for CID:', cid)
+            
+            return data
+          } else {
+            console.warn(`Gateway ${gateway} failed with status: ${response.status}`)
+            lastError = new Error(`Gateway ${gateway} failed: ${response.statusText}`)
+          }
+        } catch (gatewayError) {
+          console.warn(`Gateway ${gateway} error:`, gatewayError)
+          lastError = gatewayError instanceof Error ? gatewayError : new Error('Unknown gateway error')
+        }
       }
       
-      const data = await response.json()
-      console.log('IPFS data fetched successfully:', data)
+      // If all gateways failed, throw the last error
+      throw lastError || new Error('All IPFS gateways failed')
       
-      // Cache the data
-      cacheService.set(cacheKey, data, CACHE_TTL.IPFS_DATA)
-      console.log('IPFS data cached for CID:', cid)
-      
-      return data
     } catch (error) {
       console.error('Error fetching from IPFS:', error)
+      console.error('CID that failed:', cid)
       throw error
     }
   }

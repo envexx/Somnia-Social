@@ -2,6 +2,7 @@
 
 import { useAccount } from 'wagmi'
 import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { 
   RoundedWallet,
@@ -32,16 +33,29 @@ export default function LeftSidebar({
   onShowProfile, 
   activeTab = 'feed', 
   onTabChange,
-  hideBrandHeader = false
+  hideBrandHeader = false 
 }: LeftSidebarProps) {
+  const router = useRouter()
+  const pathname = usePathname()
   const { address, isConnected } = useAccount()
   const { userProfile, hasProfile } = useProfileContract()
   const [profileData, setProfileData] = useState<Record<string, unknown> | null>(null)
 
   // Handle navigation
   const handleTabClick = (tab: string) => {
-    if (onTabChange) {
-      onTabChange(tab)
+    if (tab === 'profile') {
+      router.push('/profile')
+    } else if (tab === 'feed') {
+      router.push('/feed')
+    } else if (tab === 'trending') {
+      router.push('/trending')
+    } else if (tab === 'communities') {
+      router.push('/communities')
+    } else {
+      // For other tabs, stay on current page but update active tab
+      if (onTabChange) {
+        onTabChange(tab)
+      }
     }
   }
 

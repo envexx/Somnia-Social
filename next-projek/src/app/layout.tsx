@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Web3Provider } from '@/lib/providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { DarkModeProvider } from '@/contexts/DarkModeContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,11 +25,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <Web3Provider>
-            <div className="min-h-screen" style={{background: 'linear-gradient(to bottom right, #0000FF, #4485F3, #1e3a8a)'}}>
-              {children}
-            </div>
-          </Web3Provider>
+          <DarkModeProvider>
+            <Web3Provider>
+              <div className="min-h-screen" style={{background: 'linear-gradient(to bottom right, #0000FF, #4485F3, #1e3a8a)'}}>
+                {children}
+              </div>
+            </Web3Provider>
+          </DarkModeProvider>
         </ErrorBoundary>
       </body>
     </html>

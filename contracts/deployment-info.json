@@ -1,0 +1,19 @@
+{
+  "network": "somnia-testnet",
+  "deployer": "0xD54b481B6AEd41Aed62E9A11d68d3e463d7669d7",
+  "timestamp": "2025-09-16T12:37:36.991Z",
+  "contracts": {
+    "TrustedForwarder": "0xbD33c607d68de499cA76d4F6187ef1e43a094e9C",
+    "ProfileRegistry": "0x6F84bfb8Ef32ec20016AcD8A53F28e75FD5d2101",
+    "PostFeed": "0x3feeF59e911f0B2cC641711AAf7fB20F5DE7331A",
+    "Reactions": "0xdE8abe80D03Aa65E8683AA4eEdFa0690B3408d7F",
+    "Badges": "0xf0F39Fd073De8bf6AEDB9B54f36f62af32ce8a19",
+    "BatchRelayer": "0xC7cFc7a96150816176C44F0CcD1066a781CEEB82"
+  },
+  "relationships": {
+    "ProfileRegistry -> Badges": true,
+    "PostFeed -> Reactions": true,
+    "Reactions -> PostFeed": true,
+    "Badges -> ProfileRegistry": true
+  }
+}

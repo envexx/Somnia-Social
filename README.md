@@ -37,7 +37,7 @@ This project is submitted for the **Somnia DeFi Mini Hackathon** (August 13 - Se
 - **Share & Bookmark**: Social sharing and content saving features
 
 ### 🏅 **Achievement System**
-- **Tiered Badge System**: 5-tier achievement system (Beginner, Bronze, Silver, Gold, Platinum)
+- **Tiered Badge System**: 4-tier achievement system (Explorer, Influencer, Leader, Legend)
 - **NFT Badges**: ERC-1155 non-transferable achievement tokens - these are the NFTs that represent your social status
 - **Automatic Progression**: Badges awarded based on activity metrics and community engagement
 - **Visual Identity**: Each badge tier has unique colors and icons displayed across the platform
@@ -138,12 +138,12 @@ Visit `http://localhost:3000` to access the application.
 ### Contract Addresses (Somnia Testnet)
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| ProfileRegistry | `0x6d875afD94B7B133083177De3d805Fa65A50557B` | User profile management |
-| PostFeed | `0xCbfCb1152880Efae5838e9c99dED04F41A819de5` | Post and comment system |
-| Reactions | `0x5531df40f1a0A8BbC4246eBaE35b41a21143f566` | Like and reaction system |
-| Badges | `0xb0E6dc49D425db0E7EF19378A635441d4cB1714f` | Achievement badge system |
-| BatchRelayer | `0xB61dA5F9ED4c13C130BD33039d8D6583C50cd17d` | Gasless batch transactions |
-| TrustedForwarder | `0x2E8Fe3b78E82179210d25339BB72e34481739D72` | Meta-transaction forwarder |
+| ProfileRegistry | `0x6F84bfb8Ef32ec20016AcD8A53F28e75FD5d2101` | User profile management |
+| PostFeed | `0x3feeF59e911f0B2cC641711AAf7fB20F5DE7331A` | Post and comment system |
+| Reactions | `0xdE8abe80D03Aa65E8683AA4eEdFa0690B3408d7F` | Like and reaction system |
+| Badges | `0xf0F39Fd073De8bf6AEDB9B54f36f62af32ce8a19` | Achievement badge system |
+| BatchRelayer | `0xC7cFc7a96150816176C44F0CcD1066a781CEEB82` | Gasless batch transactions |
+| TrustedForwarder | `0xbD33c607d68de499cA76d4F6187ef1e43a094e9C` | Meta-transaction forwarder |
 
 ### Key Contract Features
 
@@ -167,7 +167,7 @@ Visit `http://localhost:3000` to access the application.
 
 #### Badges
 - **NFT Achievement System**: ERC-1155 non-transferable tokens that serve as your social status NFTs
-- **5-tier System**: Beginner, Bronze, Silver, Gold, Platinum progression
+- **4-tier System**: Explorer, Influencer, Leader, Legend progression
 - **Activity-based Rewards**: Badges earned through posts, likes, and community engagement
 - **Visual Recognition**: Unique icons and colors displayed across profile, feed, and sidebar
 
@@ -358,7 +358,7 @@ const { userProfile, createProfile } = useProfileContract()
 - ✅ User profiles and authentication
 - ✅ Post creation and feed system
 - ✅ Like and reaction system
-- ✅ NFT Badge achievement system (5-tier)
+- ✅ NFT Badge achievement system (4-tier: Explorer, Influencer, Leader, Legend)
 - ✅ Gasless transactions
 
 ### Phase 2: Enhanced Features

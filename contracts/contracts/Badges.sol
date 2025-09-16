@@ -24,17 +24,18 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
     event TierMetadataUpdated(uint256 indexed tierId, string metadataUri);
 
     // Tier definitions
-    uint256 public constant BRONZE_TIER = 1;
-    uint256 public constant SILVER_TIER = 2;
-    uint256 public constant GOLD_TIER = 3;
-    uint256 public constant PLATINUM_TIER = 4;
+    uint256 public constant EXPLORER_TIER = 1;
+    uint256 public constant INFLUENCER_TIER = 2;
+    uint256 public constant LEADER_TIER = 3;
+    uint256 public constant LEGEND_TIER = 4;
     
-    uint256 public constant MAX_TIER = PLATINUM_TIER;
+    uint256 public constant MAX_TIER = LEGEND_TIER;
 
     // Storage
     mapping(address => uint256) private _userTiers; // Highest tier held by user
     mapping(uint256 => string) private _tierMetadata; // Tier metadata URIs
     mapping(address => bool) private _controllers; // Addresses that can grant tiers
+    address public profileRegistryContract; // Address of ProfileRegistry contract
     
     // Tier requirements (can be updated by owner)
     mapping(uint256 => uint256) public tierRequirements; // tierId => requirement threshold
@@ -45,29 +46,43 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
         Ownable() 
     {
         // Initialize tier metadata
-        _tierMetadata[BRONZE_TIER] = "ipfs://bafy...bronze-badge.json";
-        _tierMetadata[SILVER_TIER] = "ipfs://bafy...silver-badge.json";
-        _tierMetadata[GOLD_TIER] = "ipfs://bafy...gold-badge.json";
-        _tierMetadata[PLATINUM_TIER] = "ipfs://bafy...platinum-badge.json";
+        _tierMetadata[EXPLORER_TIER] = "ipfs://bafy...explorer-badge.json";
+        _tierMetadata[INFLUENCER_TIER] = "ipfs://bafy...influencer-badge.json";
+        _tierMetadata[LEADER_TIER] = "ipfs://bafy...leader-badge.json";
+        _tierMetadata[LEGEND_TIER] = "ipfs://bafy...legend-badge.json";
         
-        // Initialize tier requirements (example values)
-        tierRequirements[BRONZE_TIER] = 5;    // 5 posts or 20 likes received
-        tierRequirements[SILVER_TIER] = 20;   // 20 posts or 100 likes received
-        tierRequirements[GOLD_TIER] = 50;     // 50 posts or 300 likes received
-        tierRequirements[PLATINUM_TIER] = 150; // 150 posts or 1000 likes received
+        // Initialize tier requirements (based on new tier system)
+        tierRequirements[EXPLORER_TIER] = 10;     // 10 posts or 20 likes/reactions total
+        tierRequirements[INFLUENCER_TIER] = 1000; // ≥1,000 follower, engagement rate ≥5%
+        tierRequirements[LEADER_TIER] = 5;        // 5 event/space dibuat, engagement tinggi
+        tierRequirements[LEGEND_TIER] = 10000;   // ≥10,000 follower, community NPS ≥8/10
+    }
+
+    /**
+     * @dev Set the profile registry contract address
+     * @param _profileRegistryContract Address of the ProfileRegistry contract
+     */
+    function setProfileRegistryContract(address _profileRegistryContract) external onlyOwner {
+        profileRegistryContract = _profileRegistryContract;
     }
 
     /**
      * @dev Grant a tier badge to a user
      * @param user User address to grant badge to
      * @param tierId Tier ID to grant (1-4)
+     * @param caller Caller address (for gasless transactions, use address(0) for regular transactions)
      */
-    function grantTier(address user, uint256 tierId) external nonReentrant {
-        if (!_controllers[msg.sender] && msg.sender != owner()) {
+    function grantTier(address user, uint256 tierId, address caller) external nonReentrant {
+        // For gasless transactions, use provided caller address
+        // For regular transactions, use _msgSender()
+        address actualCaller = caller != address(0) ? caller : _msgSender();
+        
+        // Check authorization based on who is calling the function, not the caller parameter
+        if (!_controllers[_msgSender()] && _msgSender() != owner()) {
             revert Unauthorized();
         }
         
-        if (tierId < BRONZE_TIER || tierId > MAX_TIER) {
+        if (tierId < EXPLORER_TIER || tierId > MAX_TIER) {
             revert InvalidTier();
         }
 
@@ -86,9 +101,15 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
      * @dev Revoke a tier badge from a user
      * @param user User address to revoke badge from
      * @param tierId Tier ID to revoke
+     * @param caller Caller address (for gasless transactions, use address(0) for regular transactions)
      */
-    function revokeTier(address user, uint256 tierId) external nonReentrant {
-        if (!_controllers[msg.sender] && msg.sender != owner()) {
+    function revokeTier(address user, uint256 tierId, address caller) external nonReentrant {
+        // For gasless transactions, use provided caller address
+        // For regular transactions, use _msgSender()
+        address actualCaller = caller != address(0) ? caller : _msgSender();
+        
+        // Check authorization based on who is calling the function, not the caller parameter
+        if (!_controllers[_msgSender()] && _msgSender() != owner()) {
             revert Unauthorized();
         }
         
@@ -103,7 +124,7 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
         if (tierId == _userTiers[user]) {
             // Find the next highest tier
             uint256 newHighestTier = 0;
-            for (uint256 i = BRONZE_TIER; i <= MAX_TIER; i++) {
+            for (uint256 i = EXPLORER_TIER; i <= MAX_TIER; i++) {
                 if (balanceOf(user, i) > 0 && i > newHighestTier) {
                     newHighestTier = i;
                 }
@@ -112,6 +133,33 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
         }
 
         emit TierRevoked(user, tierId);
+    }
+
+    /**
+     * @dev Auto-assign beginner badge to new user
+     * @param user User address to grant beginner badge to
+     * @param caller Caller address (for gasless transactions, use address(0) for regular transactions)
+     */
+    function assignBeginnerBadge(address user, address caller) external nonReentrant {
+        // For gasless transactions, use provided caller address
+        // For regular transactions, use _msgSender()
+        address actualCaller = caller != address(0) ? caller : _msgSender();
+        
+        // Only allow ProfileRegistry contract or owner to call this
+        if (actualCaller != owner() && actualCaller != profileRegistryContract) {
+            revert Unauthorized();
+        }
+        
+        // Check if user already has any badge
+        if (_userTiers[user] > 0) {
+            return; // User already has badges, don't assign beginner
+        }
+        
+        // Grant EXPLORER_TIER (beginner badge)
+        _mint(user, EXPLORER_TIER, 1, "");
+        _userTiers[user] = EXPLORER_TIER;
+        
+        emit TierGranted(user, EXPLORER_TIER);
     }
 
     /**
@@ -142,7 +190,7 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
         uint256 count = 0;
         
         // Count how many tiers the user has
-        for (uint256 i = BRONZE_TIER; i <= MAX_TIER; i++) {
+        for (uint256 i = EXPLORER_TIER; i <= MAX_TIER; i++) {
             if (balanceOf(user, i) > 0) {
                 count++;
             }
@@ -152,7 +200,7 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
         tiers = new uint256[](count);
         uint256 index = 0;
         
-        for (uint256 i = BRONZE_TIER; i <= MAX_TIER; i++) {
+        for (uint256 i = EXPLORER_TIER; i <= MAX_TIER; i++) {
             if (balanceOf(user, i) > 0) {
                 tiers[index] = i;
                 index++;
@@ -175,7 +223,7 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
      * @param metadataUri New metadata URI
      */
     function setTierMetadata(uint256 tierId, string calldata metadataUri) external onlyOwner {
-        if (tierId < BRONZE_TIER || tierId > MAX_TIER) {
+        if (tierId < EXPLORER_TIER || tierId > MAX_TIER) {
             revert InvalidTier();
         }
         
@@ -207,7 +255,7 @@ contract Badges is ERC1155, ERC2771Context, Ownable, ReentrancyGuard {
      * @param requirement New requirement threshold
      */
     function setTierRequirement(uint256 tierId, uint256 requirement) external onlyOwner {
-        if (tierId < BRONZE_TIER || tierId > MAX_TIER) {
+        if (tierId < EXPLORER_TIER || tierId > MAX_TIER) {
             revert InvalidTier();
         }
         

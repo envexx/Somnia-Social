@@ -28,31 +28,31 @@ const BADGE_CONFIG: Record<number, BadgeInfo> = {
   },
   1: {
     tier: 1,
-    name: 'Bronze',
-    color: '#CD7F32',
-    bgColor: '#CD7F3210',
-    icon: '🥉'
+    name: 'Explorer',
+    color: '#3B82F6',
+    bgColor: '#3B82F610',
+    icon: '🔍'
   },
   2: {
     tier: 2,
-    name: 'Silver',
-    color: '#C0C0C0',
-    bgColor: '#C0C0C010',
-    icon: '🥈'
+    name: 'Influencer',
+    color: '#F59E0B',
+    bgColor: '#F59E0B10',
+    icon: '⭐'
   },
   3: {
     tier: 3,
-    name: 'Gold',
-    color: '#FFD700',
-    bgColor: '#FFD70010',
-    icon: '🥇'
+    name: 'Leader',
+    color: '#8B5CF6',
+    bgColor: '#8B5CF610',
+    icon: '👑'
   },
   4: {
     tier: 4,
-    name: 'Platinum',
-    color: '#E5E4E2',
-    bgColor: '#E5E4E210',
-    icon: '💎'
+    name: 'Legend',
+    color: '#EF4444',
+    bgColor: '#EF444410',
+    icon: '🏆'
   }
 }
 
