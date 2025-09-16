@@ -608,6 +608,106 @@ export const POST_FEED_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "parentId",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint256",
+        "name": "cursor",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "limit",
+        "type": "uint256"
+      }
+    ],
+    "name": "getComments",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "author",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "replyTo",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "repostOf",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "createdAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "enum PostFeed.Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "likeCount",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "repostCount",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "commentCount",
+            "type": "uint32"
+          },
+          {
+            "internalType": "string",
+            "name": "cid",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct PostFeed.Post[]",
+        "name": "comments",
+        "type": "tuple[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nextCursor",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "parentId",
+        "type": "uint64"
+      }
+    ],
+    "name": "commentCount",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "count",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {

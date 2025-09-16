@@ -17,6 +17,7 @@ import { useProfileContract, usePostContract, useReactionsContract } from '@/hoo
 import { ipfsService } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
 import BadgeDisplay, { AllBadgesDisplay } from '@/components/Badges/BadgeDisplay'
+import CommentModal from '@/components/Comments/CommentModal'
 import '@/styles/hide-scrollbar.css'
 
 interface ProfileViewProps {
@@ -77,6 +78,29 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
   // State for like functionality (same as PostFeed)
   const [postLikes, setPostLikes] = useState<Map<string, { count: number; liked: boolean }>>(new Map())
   // const [isLiking, setIsLiking] = useState<boolean>(false)
+
+  // State for comment modal
+  const [commentModal, setCommentModal] = useState<{
+    isOpen: boolean
+    postId: number
+    postAuthor: {
+      name: string
+      username: string
+      avatar: string
+      address: string
+    }
+    postContent: string
+  }>({
+    isOpen: false,
+    postId: 0,
+    postAuthor: {
+      name: '',
+      username: '',
+      avatar: '',
+      address: ''
+    },
+    postContent: ''
+  })
   
   const [editData, setEditData] = useState({
     username: '',
@@ -194,7 +218,10 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
       
       const [likeCount, userLiked] = await Promise.all([
         getLikeCountRef.current(numericPostId),
-        hasLikedRef.current(numericPostId)
+        // For ProfileView, we don't need to check if current user liked
+        // because all posts here belong to the current user
+        // We only need the like count from other users
+        Promise.resolve(false)
       ])
       
       const likeData = {
@@ -280,7 +307,10 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
               if (!isNaN(actualPostId) && actualPostId > 0 && address) {
                 try {
                   realTimeLikeCount = await getLikeCountRef.current(actualPostId)
-                  realTimeLiked = await hasLikedRef.current(actualPostId)
+                  // For posts in ProfileView, we don't need to check if current user liked
+                  // because all posts here belong to the current user
+                  // We only need the like count from other users
+                  realTimeLiked = false
                 } catch (_error) {
                   // Fallback to contract data
                   realTimeLikeCount = post.likeCount || 0
@@ -325,7 +355,10 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
               if (!isNaN(actualPostId) && actualPostId > 0 && address) {
                 try {
                   realTimeLikeCount = await getLikeCountRef.current(actualPostId)
-                  realTimeLiked = await hasLikedRef.current(actualPostId)
+                  // For posts in ProfileView, we don't need to check if current user liked
+                  // because all posts here belong to the current user
+                  // We only need the like count from other users
+                  realTimeLiked = false
                 } catch (_likeError) {
                   realTimeLikeCount = post.likeCount || 0
                   realTimeLiked = false
@@ -385,6 +418,26 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
       })
     }
   }, [formattedUserPosts, address, fetchLikeData])
+
+  // Function to open comment modal
+  const handleOpenComments = (postId: number, postAuthor: Record<string, unknown>, postContent: string) => {
+    setCommentModal({
+      isOpen: true,
+      postId,
+      postAuthor: {
+        name: postAuthor.name as string,
+        username: postAuthor.username as string,
+        avatar: postAuthor.avatar as string,
+        address: postAuthor.address as string
+      },
+      postContent
+    })
+  }
+
+  // Function to close comment modal
+  const handleCloseComments = () => {
+    setCommentModal(prev => ({ ...prev, isOpen: false }))
+  }
 
   const handleAvatarUpload = async (file: File) => {
     if (!file) return
@@ -852,16 +905,19 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
             </button>
           </div>
         ) : (
-          <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 space-y-3`}>
+          <>
             {profileData?.location && (
+              <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 space-y-3 mb-6`}>
               <div className="flex items-center space-x-3">
                 <RoundedGlobe className={`w-5 h-5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`} />
                 <span className={`text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   {profileData.location}
                 </span>
+                </div>
               </div>
             )}
             {profileData?.links?.website && (
+              <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 space-y-3 mb-6`}>
               <div className="flex items-center space-x-3">
                 <RoundedGlobe className={`w-5 h-5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`} />
                 <a 
@@ -872,9 +928,11 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 >
                   {profileData.links.website}
                 </a>
+                </div>
               </div>
             )}
             {profileData?.links?.github && (
+              <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 space-y-3 mb-6`}>
               <div className="flex items-center space-x-3">
                 <RoundedGlobe className={`w-5 h-5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`} />
                 <a 
@@ -885,9 +943,11 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 >
                   github.com/{profileData.links.github}
                 </a>
+                </div>
               </div>
             )}
             {profileData?.links?.x && (
+              <div className={`${isDarkMode ? 'bg-slate-800/40' : 'bg-gray-50/50'} rounded-xl p-6 space-y-3 mb-6`}>
               <div className="flex items-center space-x-3">
                 <RoundedGlobe className={`w-5 h-5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`} />
                 <a 
@@ -899,8 +959,9 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                   x.com/{profileData.links.x}
                 </a>
               </div>
-            )}
           </div>
+            )}
+          </>
         )}
         
         {/* Hidden file input for avatar upload */}
@@ -1005,6 +1066,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                         </button>
                         
                         <button 
+                          onClick={() => handleOpenComments(Number(postData.id), author, postData.content as string)}
                           disabled={!isConnected}
                           className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/10' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`}
                         >
@@ -1035,6 +1097,16 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={commentModal.isOpen}
+        onClose={handleCloseComments}
+        postId={commentModal.postId}
+        postAuthor={commentModal.postAuthor}
+        postContent={commentModal.postContent}
+        isDarkMode={isDarkMode}
+      />
     </div>
   )
 }

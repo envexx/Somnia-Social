@@ -66,7 +66,7 @@ export function useProfileContract() {
         })
         
         const data = await response.json()
-        console.log(`Profile for ${ownerAddr} RPC response:`, data)
+        // console.log(`Profile for ${ownerAddr} RPC response:`, data) // Removed excessive logging
         
         // Decode the response using ethers.js
         if (data.result && data.result !== '0x') {
@@ -414,7 +414,7 @@ export function usePostContract() {
       })
       
       const data = await response.json()
-      console.log(`Post ${postId} RPC response:`, data)
+      // console.log(`Post ${postId} RPC response:`, data) // Removed excessive logging
       
       // For now, return null as we need proper ABI encoding
       // In production, you'd decode the response using the contract ABI
@@ -466,6 +466,106 @@ export function usePostContract() {
     }
   }
 
+  // Function to get comments for a post
+  const getComments = async (postId: number, cursor: number = 0, limit: number = 10) => {
+    try {
+      console.log(`Fetching comments for post ${postId}`)
+      
+      // Use fetch to call the RPC directly
+      const contractInterface = new ethers.Interface(POST_FEED_ABI)
+      const functionData = contractInterface.encodeFunctionData('getComments', [postId, cursor, limit])
+      
+      const response = await fetch(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_call',
+          params: [
+            {
+              to: CONTRACT_ADDRESSES.PostFeed,
+              data: functionData
+            },
+            'latest'
+          ],
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      })
+      
+      const data = await response.json()
+      // console.log(`Comments for post ${postId} RPC response:`, data) // Removed excessive logging
+      
+      // Check for RPC errors
+      if (data.error) {
+        console.error(`RPC error getting comments for post ${postId}:`, data.error)
+        return { comments: [], nextCursor: cursor }
+      }
+      
+      if (data.result && data.result !== '0x') {
+        const decoded = contractInterface.decodeFunctionResult('getComments', data.result)
+        return {
+          comments: decoded[0], // Array of comments
+          nextCursor: decoded[1] // Next cursor
+        }
+      }
+      
+      return { comments: [], nextCursor: cursor }
+    } catch (error) {
+      console.error('Error getting comments:', error)
+      return { comments: [], nextCursor: cursor }
+    }
+  }
+
+  // Function to get comment count for a post
+  const getCommentCount = async (postId: number): Promise<number> => {
+    try {
+      console.log(`Fetching comment count for post ${postId}`)
+      
+      const contractInterface = new ethers.Interface(POST_FEED_ABI)
+      const functionData = contractInterface.encodeFunctionData('commentCount', [postId])
+      
+      const response = await fetch(process.env.NEXT_PUBLIC_RPC_URL || 'https://dream-rpc.somnia.network', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_call',
+          params: [
+            {
+              to: CONTRACT_ADDRESSES.PostFeed,
+              data: functionData
+            },
+            'latest'
+          ],
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        console.error(`RPC error getting comment count for post ${postId}:`, data.error)
+        return 0
+      }
+      
+      if (data.result && data.result !== '0x') {
+        const decoded = contractInterface.decodeFunctionResult('commentCount', data.result)
+        return Number(decoded[0])
+      }
+      
+      return 0
+    } catch (error) {
+      console.error('Error getting comment count:', error)
+      return 0
+    }
+  }
+
   return {
     totalPosts,
     globalTotalPosts,
@@ -473,6 +573,8 @@ export function usePostContract() {
     userPosts,
     createPost: createPostWithIPFS,
     getPost: getPostWithIPFS,
+    getComments,
+    getCommentCount,
     refetchLatestPosts,
     refetchUserPosts,
     getPostById,
@@ -603,7 +705,7 @@ export function useReactionsContract() {
       })
       
       const data = await response.json()
-      console.log(`Like count for ${postId} RPC response:`, data)
+      // console.log(`Like count for ${postId} RPC response:`, data) // Removed excessive logging
       
       // Check for RPC errors
       if (data.error) {

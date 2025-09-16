@@ -17,6 +17,7 @@ import { useAccount } from 'wagmi'
 import { usePostContract, useReactionsContract, useProfileContract } from '@/hooks/useContracts'
 import { ipfsService, ProfileData } from '@/lib/ipfs'
 import BadgeDisplay from '@/components/Badges/BadgeDisplay'
+import CommentModal from '@/components/Comments/CommentModal'
 import '@/styles/hide-scrollbar.css'
 
 interface Post {
@@ -95,6 +96,63 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   
   const [isLiking, setIsLiking] = useState<boolean>(false)
 
+  // State for comment modal
+  const [commentModal, setCommentModal] = useState<{
+    isOpen: boolean
+    postId: number
+    postAuthor: {
+      name: string
+      username: string
+      avatar: string
+      address: string
+    }
+    postContent: string
+  }>({
+    isOpen: false,
+    postId: 0,
+    postAuthor: {
+      name: '',
+      username: '',
+      avatar: '',
+      address: ''
+    },
+    postContent: ''
+  })
+
+  // Simple profile fetching without caching
+  const getProfileSimple = useCallback(async (authorAddress: string): Promise<ProfileData | null> => {
+    try {
+      const profile = await getProfileByOwner(authorAddress)
+      if (profile) {
+        const profileCid = (profile as unknown as unknown[])[3] as string
+        if (profileCid) {
+          const profileData = await ipfsService.fetchFromIPFS(profileCid)
+          return profileData as ProfileData
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    }
+    
+    return null
+  }, [getProfileByOwner])
+
+  // Simple like data fetching without caching
+  const getLikeDataSimple = useCallback(async (postId: string): Promise<{ count: number; liked: boolean }> => {
+    try {
+      const numericPostId = Number(postId)
+      const [likeCount, liked] = await Promise.all([
+        getLikeCount(numericPostId),
+        address ? hasLiked(numericPostId) : Promise.resolve(false)
+      ])
+      
+      return { count: likeCount, liked }
+    } catch (error) {
+      console.error('Error fetching like data:', error)
+      return { count: 0, liked: false }
+    }
+  }, [getLikeCount, hasLiked, address])
+
   // Function to handle follow/unfollow
   const handleFollow = async (authorAddress: string) => {
     if (!isConnected || !address) {
@@ -134,6 +192,26 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   // Function to check if user is following someone
   const isUserFollowing = (authorAddress: string): boolean => {
     return followingUsers.has(authorAddress)
+  }
+
+  // Function to open comment modal
+  const handleOpenComments = (postId: number, postAuthor: Record<string, unknown>, postContent: string) => {
+    setCommentModal({
+      isOpen: true,
+      postId,
+      postAuthor: {
+        name: postAuthor.name as string,
+        username: postAuthor.username as string,
+        avatar: postAuthor.avatar as string,
+        address: postAuthor.address as string
+      },
+      postContent
+    })
+  }
+
+  // Function to close comment modal
+  const handleCloseComments = () => {
+    setCommentModal(prev => ({ ...prev, isOpen: false }))
   }
   
   // Mock posts removed - using blockchain data only
@@ -179,9 +257,14 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         const [postsArray] = latestPosts
         
         if (Array.isArray(postsArray) && postsArray.length > 0) {
-          // Process each post from the posts array
-          const postsWithIPFS = await Promise.all(
-            postsArray.map(async (post: unknown, index: number) => {
+          
+          // Show all posts (no filtering)
+          const postsToProcess = postsArray
+          
+          if (postsToProcess.length > 0) {
+            // Process each post from the posts to process array
+            const postsWithIPFS = await Promise.all(
+              postsToProcess.map(async (post: Record<string, unknown>, index: number) => {
               try {
                 // Extract CID from the post object structure
                 let cid = null
@@ -234,6 +317,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         
           const validPosts = postsWithIPFS.filter(post => post !== null)
           setBlockchainPostsData(validPosts)
+          } else {
+            setBlockchainPostsData([])
+          }
         } else {
           setBlockchainPostsData([])
         }
@@ -267,45 +353,23 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       author = (postData as Record<string, unknown>).author as string
     }
     
-    // Log like and comment data from blockchain
-    // if (postData && typeof postData === 'object') {
-    //   const postObj = postData as Record<string, unknown>
-    // }
     
-    // Try to fetch author's profile data
-    let authorProfile = null
-    try {
-      // Use the profile contract to get author's profile
-      if (getProfileByOwner) {
-        authorProfile = await getProfileByOwner(author)
-      }
-    } catch (_error) {
-      // Error fetching author profile
-    }
-    
-    // Extract author info from profile or use fallbacks
+    // Try to fetch author's profile data with caching
     let authorName = 'Unknown User'
     let authorUsername = '@unknown'
     let authorAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
     
-    if (authorProfile && Array.isArray(authorProfile) && (authorProfile as unknown[]).length >= 4) {
-      const profileCid = (authorProfile as unknown[])[3] as string // profileCid is the 4th element
-      if (profileCid && typeof profileCid === 'string') {
-        try {
-          const profileData = await ipfsService.fetchFromIPFS(profileCid)
-          
-          if (profileData !== null) {
-            const profile = profileData as Record<string, unknown>
-            authorName = (profile.displayName as string) || 'Unknown User'
-            authorUsername = (profile.username as string) || '@unknown'
-            authorAvatar = profile.avatar ? 
-              (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : 
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
-          }
-        } catch (_error) {
-          // Error fetching author profile from IPFS
-        }
+    try {
+      const profileData = await getProfileSimple(author)
+      if (profileData) {
+        authorName = (profileData.displayName as string) || 'Unknown User'
+        authorUsername = (profileData.username as string) || '@unknown'
+        authorAvatar = profileData.avatar ? 
+          (profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : 
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
       }
+    } catch (_error) {
+      // Error fetching author profile, use fallbacks
     }
     
         const convertedPost = {
@@ -333,12 +397,55 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       comments: Number((postData as Record<string, unknown>).commentCount || 0),
       shares: Number((postData as Record<string, unknown>).repostCount || 0),
       liked: false, // Will be updated by fetchLikeData for blockchain posts
-      bookmarked: false // TODO: Implement bookmark status
+      bookmarked: false, // TODO: Implement bookmark status
+      replyTo: (postData as Record<string, unknown>).replyTo || 0, // Add replyTo field to identify comments
+      replyToAuthor: await (async () => {
+        const replyToId = Number((postData as Record<string, unknown>).replyTo) || 0
+        console.log('Debug replyToId:', replyToId, 'for post:', post.postId)
+        
+        if (replyToId && replyToId > 0) {
+          try {
+            // Try to find the original post in latestPosts data
+            if (latestPosts && Array.isArray(latestPosts) && latestPosts.length === 2) {
+              const [postsArray] = latestPosts
+              console.log('Debug postsArray length:', postsArray.length)
+              
+              if (Array.isArray(postsArray)) {
+                // Find the post by searching through all posts for matching postId
+                for (let i = 0; i < postsArray.length; i++) {
+                  const currentPost = postsArray[i] as Record<string, unknown>
+                  
+                  // Calculate what the postId should be for this index
+                  const calculatedPostId = postsArray.length - i
+                  console.log('Debug checking index', i, 'calculatedPostId:', calculatedPostId, 'vs replyToId:', replyToId)
+                  
+                  if (calculatedPostId === replyToId) {
+                    console.log('Debug found matching post!', currentPost)
+                    
+                    if (currentPost && currentPost.author) {
+                      const originalAuthor = currentPost.author as string
+                      console.log('Debug originalAuthor:', originalAuthor)
+                      
+                      const profileData = await getProfileSimple(originalAuthor)
+                      console.log('Debug profileData:', profileData)
+                      
+                      return profileData ? (profileData.displayName as string) || 'Unknown' : 'Unknown'
+                    }
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.log('Debug error finding original post:', error)
+          }
+        }
+        return 'Unknown'
+      })() // Add replyToAuthor field to show who the comment is replying to
     }
     
     
     return convertedPost
-  }, [getProfileByOwner])
+  }, [getProfileSimple, latestPosts])
 
   // Combine blockchain posts with existing posts
   const [convertedBlockchainPosts, setConvertedBlockchainPosts] = useState<unknown[]>([])
@@ -364,36 +471,24 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     }
     
     convertPosts()
-  }, [blockchainPostsData, convertBlockchainPost])
+  }, [blockchainPostsData]) // Remove convertBlockchainPost dependency to prevent infinite loops
   
   const allPosts = useMemo(() => [...convertedBlockchainPosts, ...posts], [convertedBlockchainPosts, posts])
 
   // Function to fetch like data for posts
   const fetchLikeData = useCallback(async (postId: string, retryCount = 0) => {
     if (!isConnected || !address) {
-      console.log('❌ Cannot fetch like data: wallet not connected')
       return
     }
     
     try {
-      // Check if postId is a valid number for smart contract
-      const numericPostId = parseInt(postId)
-      if (isNaN(numericPostId)) {
-        console.error('❌ Invalid post ID:', postId)
-        return
-      }
+      // Fetch like data directly
+      const likeData = await getLikeDataSimple(postId)
       
-      const [likeCount, userLiked] = await Promise.all([
-        getLikeCount(numericPostId),
-        hasLiked(numericPostId)
-      ])
-      
+      // Update postLikes state
       setPostLikes(prev => {
         const newMap = new Map(prev)
-        newMap.set(postId, {
-          count: likeCount,
-          liked: userLiked
-        })
+        newMap.set(postId, likeData)
         return newMap
       })
       
@@ -425,7 +520,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         })
       }
     }
-  }, [isConnected, address, getLikeCount, hasLiked, setPostLikes])
+  }, [isConnected, address, getLikeDataSimple])
 
   // Fetch like data for all posts when they change
   useEffect(() => {
@@ -469,16 +564,16 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       setIsLiking(true)
       
       // Optimistic update - immediately update UI
-      const currentLikeData = postLikes.get(postId)
-      const newLikedState = !currentLikeData?.liked
-      const newCount = currentLikeData ? (newLikedState ? currentLikeData.count + 1 : currentLikeData.count - 1) : (newLikedState ? 1 : 0)
+      const currentLikeData = postLikes.get(postId) || { count: 0, liked: false }
+      const newLikedState = !currentLikeData.liked
+      const newCount = newLikedState ? currentLikeData.count + 1 : currentLikeData.count - 1
       
+      const newLikeData = { count: newCount, liked: newLikedState }
+      
+      // Update postLikes state
       setPostLikes(prev => {
         const newMap = new Map(prev)
-        newMap.set(postId, {
-          count: newCount,
-          liked: newLikedState
-        })
+        newMap.set(postId, newLikeData)
         return newMap
       })
       
@@ -538,12 +633,14 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       // Revert optimistic update on error
       const currentLikeData = postLikes.get(postId)
       if (currentLikeData) {
+        const revertedLikeData = {
+          count: currentLikeData.liked ? currentLikeData.count - 1 : currentLikeData.count + 1,
+          liked: !currentLikeData.liked
+        }
+        
         setPostLikes(prev => {
           const newMap = new Map(prev)
-          newMap.set(postId, {
-            count: currentLikeData.liked ? currentLikeData.count - 1 : currentLikeData.count + 1,
-            liked: !currentLikeData.liked
-          })
+          newMap.set(postId, revertedLikeData)
           return newMap
         })
       }
@@ -835,6 +932,15 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                           size="sm"
                           showText={false}
                         />
+                        {/* Comment Indicator */}
+                        {(postData.replyTo as number) > 0 && (
+                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-blue-100 text-blue-600 border border-blue-200'}`}>
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                            </svg>
+                            <span>Comment to {postData.replyToAuthor as string || 'Unknown'}</span>
+                          </div>
+                        )}
                         {author?.verified as boolean && <RoundedShield className="w-4 h-4 text-blue-500" />}
                       </div>
                       <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{postData.timestamp as string}</p>
@@ -893,58 +999,42 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     <button 
                       onClick={() => handleLike(postData.id as string)}
                       disabled={!isConnected || isLiking}
-                      className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${(() => {
-                        const likeData = postLikes.get(postData.id as string)
-                        const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
-                        const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
-                        
-                        console.log(`🔘 BUTTON DEBUG for Post ${postData.id}:`)
-                        console.log(`- isLiked:`, isLiked)
-                        console.log(`- Button will be:`, isLiked ? 'RED' : 'GRAY')
-                        
-                        return isLiked
-                          ? `${isDarkMode ? 'text-red-400 bg-red-500/20 border border-red-500/30' : 'text-red-600 bg-red-50 border border-red-200'}` 
-                          : `${isDarkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`
-                      })()} disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${
+                        (() => {
+                          const likeData = postLikes.get(postData.id as string)
+                          const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
+                          const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
+                          
+                          return isLiked
+                            ? `${isDarkMode ? 'text-red-400 bg-red-500/20 border border-red-500/30' : 'text-red-600 bg-red-50 border border-red-200'}` 
+                            : `${isDarkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`
+                        })()
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <RoundedHeart className={`w-4 h-4 ${(() => {
-                        const likeData = postLikes.get(postData.id as string)
-                        const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
-                        // For blockchain posts, use contract data for liked status
-                        // For non-blockchain posts, use postData.liked
-                        const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
-                        
-                        console.log(`❤️ HEART ICON DEBUG for Post ${postData.id}:`)
-                        console.log(`- likeData:`, likeData)
-                        console.log(`- isBlockchainPost:`, isBlockchainPost)
-                        console.log(`- isLiked:`, isLiked)
-                        console.log(`- Heart will be filled:`, isLiked)
-                        console.log(`- CSS class will be:`, isLiked ? 'w-4 h-4 fill-current text-red-500' : 'w-4 h-4 text-gray-400')
-                        
-                        return isLiked ? 'fill-current text-red-500' : 'text-gray-400'
-                      })()}`} />
+                      <RoundedHeart className={`w-4 h-4 ${
+                        (() => {
+                          const likeData = postLikes.get(postData.id as string)
+                          const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
+                          const isLiked = isBlockchainPost ? likeData?.liked : (likeData?.liked || postData.liked)
+                          
+                          return isLiked ? 'fill-current text-red-500' : 'text-gray-400'
+                        })()
+                      }`} />
                       <span className="text-xs font-medium">
                         {(() => {
                           const likeData = postLikes.get(postData.id as string)
-                          // For blockchain posts, use dynamic likeData.count from state
-                          // For non-blockchain posts, use postData.likes
                           const isBlockchainPost = postData.timestamp && typeof postData.timestamp === 'string' && postData.timestamp.includes('/')
                           const displayCount = isBlockchainPost ? (likeData?.count ?? postData.likes) : (likeData?.count ?? postData.likes)
-                          
-                          console.log(`📊 COUNT DEBUG for Post ${postData.id}:`)
-                          console.log(`- likeData:`, likeData)
-                          console.log(`- isBlockchainPost:`, isBlockchainPost)
-                          console.log(`- likeData.count:`, likeData?.count)
-                          console.log(`- postData.likes:`, postData.likes)
-                          console.log(`- displayCount:`, displayCount)
-                          console.log(`- formatted:`, formatNumber(displayCount as number))
                           
                           return formatNumber(displayCount as number)
                         })()}
                       </span>
                     </button>
                     
-                    <button className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}>
+                    <button 
+                      onClick={() => handleOpenComments(Number(postData.id), author, postData.content as string)}
+                      className={`flex items-center space-x-1 px-2 py-1 ${isDarkMode ? 'text-slate-400 hover:text-blue-400 hover:bg-blue-500/20' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'} rounded-lg transition-all`}
+                    >
                       <RoundedMessage className="w-4 h-4" />
                       <span className="text-xs font-medium">{formatNumber(postData.comments as number)}</span>
                     </button>
@@ -978,6 +1068,16 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         </button>
       </div>
       </div>
+
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={commentModal.isOpen}
+        onClose={handleCloseComments}
+        postId={commentModal.postId}
+        postAuthor={commentModal.postAuthor}
+        postContent={commentModal.postContent}
+        isDarkMode={isDarkMode}
+      />
     </div>
   )
 }
