@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { 
   RoundedSearch,
   RoundedSun, 
@@ -146,9 +147,11 @@ export default function Header({ isDarkMode, toggleDarkMode, onShowProfile }: He
                 <div className="relative">
                   {profileData?.avatar ? (
                     <div className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl overflow-hidden">
-                      <img 
+                      <Image 
                         src={(profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
                         alt="Profile Avatar"
+                        width={36}
+                        height={36}
                         className="w-full h-full object-cover"
                       />
                     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { useAccount } from 'wagmi'
 import { useDarkMode } from '@/contexts/DarkModeContext'
 import { 
@@ -75,7 +76,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
   
   // State for like functionality (same as PostFeed)
   const [postLikes, setPostLikes] = useState<Map<string, { count: number; liked: boolean }>>(new Map())
-  const [isLiking, setIsLiking] = useState<boolean>(false)
+  // const [isLiking, setIsLiking] = useState<boolean>(false)
   
   const [editData, setEditData] = useState({
     username: '',
@@ -280,7 +281,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 try {
                   realTimeLikeCount = await getLikeCountRef.current(actualPostId)
                   realTimeLiked = await hasLikedRef.current(actualPostId)
-                } catch (error) {
+                } catch (_error) {
                   // Fallback to contract data
                   realTimeLikeCount = post.likeCount || 0
                   realTimeLiked = false
@@ -312,7 +313,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 commentCount: post.commentCount,
                 cid: post.cid
               }
-            } catch (error) {
+            } catch (_error) {
               // Try to get real-time like data even if IPFS fails
               // Use same approach as above
               const actualPostId = globalTotalPostsRef.current ? Number(globalTotalPostsRef.current) - index : index + 1
@@ -325,7 +326,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 try {
                   realTimeLikeCount = await getLikeCountRef.current(actualPostId)
                   realTimeLiked = await hasLikedRef.current(actualPostId)
-                } catch (likeError) {
+                } catch (_likeError) {
                   realTimeLikeCount = post.likeCount || 0
                   realTimeLiked = false
                 }
@@ -371,18 +372,19 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
     if (userPosts && address) {
       processUserPosts()
     }
-  }, [userPosts, address])
+  }, [userPosts, address, processUserPosts])
 
   // Fetch like data for all posts when posts change
   useEffect(() => {
     if (formattedUserPosts && formattedUserPosts.length > 0 && address) {
-      formattedUserPosts.forEach((post: any) => {
-        if (post.id) {
-          fetchLikeData(post.id)
+      formattedUserPosts.forEach((post: unknown) => {
+        const postData = post as Record<string, unknown>
+        if (postData.id) {
+          fetchLikeData(postData.id as string)
         }
       })
     }
-  }, [formattedUserPosts, address])
+  }, [formattedUserPosts, address, fetchLikeData])
 
   const handleAvatarUpload = async (file: File) => {
     if (!file) return
@@ -441,15 +443,15 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
         x: editData.x
       }
       
-      const profileData = {
-        version: 1,
-        username: editData.username,
-        displayName: editData.displayName,
-        bio: editData.bio,
-        avatar: avatarCid,
-        location: editData.location,
-        links
-      }
+      // const profileData = {
+      //   version: 1,
+      //   username: editData.username,
+      //   displayName: editData.displayName,
+      //   bio: editData.bio,
+      //   avatar: avatarCid,
+      //   location: editData.location,
+      //   links
+      // }
       
       await createProfile(
         editData.username, 
@@ -556,9 +558,11 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                   <div className="relative inline-block">
                     <div className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-80 transition-all" style={{background: 'linear-gradient(to right, #0000FF, #4485F3)'}} onClick={() => fileInputRef.current?.click()}>
                       {avatarPreview ? (
-                        <img 
+                        <Image 
                           src={avatarPreview} 
                           alt="Avatar preview" 
+                          width={200}
+                          height={200}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -675,9 +679,11 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
             <div className="relative">
               <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center cursor-pointer hover:opacity-80 transition-all" onClick={() => fileInputRef.current?.click()}>
                 {avatarPreview ? (
-                  <img 
+                  <Image 
                     src={avatarPreview} 
                     alt="Avatar" 
+                    width={96}
+                    height={96}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -922,7 +928,13 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3 flex-1">
-                        <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
+                        <Image 
+                          src={author?.avatar as string} 
+                          alt={author?.username as string} 
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" 
+                        />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
                             <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
@@ -941,9 +953,11 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                     {postData.image as string && (
                       <div className="mb-4 -mx-4">
                         <div className="relative overflow-hidden rounded-xl">
-                          <img 
+                          <Image 
                             src={postData.image as string} 
                             alt="Post content" 
+                            width={500}
+                            height={300}
                             className="w-full h-auto object-cover aspect-video"
                           />
                         </div>

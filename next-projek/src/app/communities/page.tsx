@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Header from '@/components/Layout/Header'
 import LeftSidebar from '@/components/Layout/LeftSidebar'
 import RightSidebar from '@/components/Layout/RightSidebar'
@@ -49,9 +50,11 @@ export default function CommunitiesPage() {
             </button>
             <div className="flex items-center space-x-2">
               <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center">
-                <img 
+                <Image 
                   src="/favicon.png" 
                   alt="Somnia Social Logo"
+                  width={28}
+                  height={28}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -82,9 +85,11 @@ export default function CommunitiesPage() {
               }`}>
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center">
-                    <img 
+                    <Image 
                       src="/favicon.png" 
                       alt="Somnia Social Logo"
+                      width={32}
+                      height={32}
                       className="w-full h-full object-contain"
                     />
                   </div>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import Image from 'next/image'
 import { 
   RoundedHeart, 
   RoundedMessage, 
@@ -45,7 +46,7 @@ interface PostFeedProps {
 
 export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeedProps) {
   const { address, isConnected } = useAccount()
-  const { createPost, latestPosts, refetchLatestPosts, latestPostsError, latestPostsLoading } = usePostContract()
+  const { createPost, latestPosts, refetchLatestPosts } = usePostContract()
   const { toggleLike, hasLiked, getLikeCount } = useReactionsContract()
   const { hasProfile, userProfile, getProfileByOwner } = useProfileContract()
   
@@ -175,7 +176,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     const fetchBlockchainPosts = async () => {
       // Check if latestPosts is a tuple [posts[], nextCursor]
       if (latestPosts && Array.isArray(latestPosts) && latestPosts.length === 2) {
-        const [postsArray, nextCursor] = latestPosts
+        const [postsArray] = latestPosts
         
         if (Array.isArray(postsArray) && postsArray.length > 0) {
           // Process each post from the posts array
@@ -222,10 +223,10 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                     cid,
                     ipfsData
                   }
-                } catch (ipfsError) {
+                } catch (_ipfsError) {
                   return null
                 }
-              } catch (error) {
+              } catch (_error) {
                 return null
               }
             })
@@ -245,7 +246,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
   }, [latestPosts])
 
   // Convert blockchain post data to renderable format
-  const convertBlockchainPost = async (post: Record<string, unknown>) => {
+  const convertBlockchainPost = useCallback(async (post: Record<string, unknown>) => {
     if (!post || !post.ipfsData) {
       return null
     }
@@ -267,9 +268,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     }
     
     // Log like and comment data from blockchain
-    if (postData && typeof postData === 'object') {
-      const postObj = postData as Record<string, unknown>
-    }
+    // if (postData && typeof postData === 'object') {
+    //   const postObj = postData as Record<string, unknown>
+    // }
     
     // Try to fetch author's profile data
     let authorProfile = null
@@ -278,7 +279,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       if (getProfileByOwner) {
         authorProfile = await getProfileByOwner(author)
       }
-    } catch (error) {
+    } catch (_error) {
       // Error fetching author profile
     }
     
@@ -301,7 +302,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : 
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`
           }
-        } catch (error) {
+        } catch (_error) {
           // Error fetching author profile from IPFS
         }
       }
@@ -337,7 +338,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     
     
     return convertedPost
-  }
+  }, [getProfileByOwner])
 
   // Combine blockchain posts with existing posts
   const [convertedBlockchainPosts, setConvertedBlockchainPosts] = useState<unknown[]>([])
@@ -350,12 +351,12 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
           blockchainPostsData.map(async (post) => {
             try {
               return await convertBlockchainPost(post as Record<string, unknown>)
-            } catch (error) {
+            } catch (_error) {
               return null
             }
           })
         )
-        const validPosts = converted.filter((post): post is NonNullable<typeof post> => post !== null)
+        const validPosts = converted.filter((post: unknown): post is NonNullable<typeof post> => post !== null)
         setConvertedBlockchainPosts(validPosts)
       } else {
         setConvertedBlockchainPosts([])
@@ -363,44 +364,12 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     }
     
     convertPosts()
-  }, [blockchainPostsData])
+  }, [blockchainPostsData, convertBlockchainPost])
   
   const allPosts = useMemo(() => [...convertedBlockchainPosts, ...posts], [convertedBlockchainPosts, posts])
 
-  // Fetch like data for all posts when they change
-  useEffect(() => {
-    const fetchAllLikeData = async () => {
-      if (allPosts.length > 0 && address) {
-        // Process posts in batches to avoid overwhelming the RPC
-        const batchSize = 3
-        for (let i = 0; i < allPosts.length; i += batchSize) {
-          const batch = allPosts.slice(i, i + batchSize)
-          
-          // Fetch like status for all posts (both blockchain and non-blockchain)
-          // For blockchain posts, we only need the 'liked' status, not the count
-          await Promise.all(batch.map(post => fetchLikeData((post as Record<string, unknown>).id as string)))
-          
-          // Small delay between batches
-          if (i + batchSize < allPosts.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          }
-        }
-      }
-    }
-    
-    // Debounce the fetch to prevent excessive calls
-    const timeoutId = setTimeout(fetchAllLikeData, 500)
-    return () => clearTimeout(timeoutId)
-  }, [allPosts.length, address]) // Only depend on length and address, not the entire array
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
-    return num.toString()
-  }
-
   // Function to fetch like data for posts
-  const fetchLikeData = async (postId: string, retryCount = 0) => {
+  const fetchLikeData = useCallback(async (postId: string, retryCount = 0) => {
     if (!isConnected || !address) {
       console.log('❌ Cannot fetch like data: wallet not connected')
       return
@@ -456,6 +425,38 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         })
       }
     }
+  }, [isConnected, address, getLikeCount, hasLiked, setPostLikes])
+
+  // Fetch like data for all posts when they change
+  useEffect(() => {
+    const fetchAllLikeData = async () => {
+      if (allPosts.length > 0 && address) {
+        // Process posts in batches to avoid overwhelming the RPC
+        const batchSize = 3
+        for (let i = 0; i < allPosts.length; i += batchSize) {
+          const batch = allPosts.slice(i, i + batchSize)
+          
+          // Fetch like status for all posts (both blockchain and non-blockchain)
+          // For blockchain posts, we only need the 'liked' status, not the count
+          await Promise.all(batch.map(post => fetchLikeData((post as Record<string, unknown>).id as string)))
+          
+          // Small delay between batches
+          if (i + batchSize < allPosts.length) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+        }
+      }
+    }
+    
+    // Debounce the fetch to prevent excessive calls
+    const timeoutId = setTimeout(fetchAllLikeData, 500)
+    return () => clearTimeout(timeoutId)
+  }, [allPosts, address, fetchLikeData]) // Include all dependencies
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
+    return num.toString()
   }
 
   const handleLike = async (postId: string) => {
@@ -553,7 +554,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     }
   }
 
-  const handleBookmark = (postId: string) => {
+  const handleBookmark = (_postId: string) => {
     // TODO: Implement bookmark functionality
   }
 
@@ -686,9 +687,11 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       <div className={`${isDarkMode ? 'bg-slate-800/60 hover:bg-slate-800/80' : 'bg-white/70 hover:bg-white/80'} backdrop-blur-2xl rounded-xl p-4 mb-5 border ${isDarkMode ? 'border-slate-700/50 hover:border-slate-600/70' : 'border-white/50 hover:border-white/70'} shadow-lg hover:shadow-xl transition-all duration-300 group`}>
         <div className="flex items-start space-x-3">
           {hasProfile && profileData?.avatar ? (
-            <img 
+            <Image 
               src={profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/')} 
               alt={profileData.displayName || 'Profile'} 
+              width={36}
+              height={36}
               className="w-9 h-9 rounded-full border-2 border-white/50 group-hover:border-white/70 transition-all duration-300 object-cover" 
             />
           ) : (
@@ -728,9 +731,11 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {imagePreviews.map((preview, index) => (
                   <div key={index} className="relative group">
-                    <img 
+                    <Image 
                       src={preview} 
                       alt={`Preview ${index + 1}`}
+                      width={200}
+                      height={96}
                       className="w-full h-24 object-cover rounded-lg border border-white/20"
                     />
                     <button
@@ -814,7 +819,13 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3 flex-1">
-                    <img src={author?.avatar as string} alt={author?.username as string} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
+                    <Image 
+                      src={author?.avatar as string} 
+                      alt={author?.username as string} 
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" 
+                    />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h4 className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{author?.name as string}</h4>
@@ -860,9 +871,11 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                 {(postData.image as string) && (
                   <div className="mb-4 -mx-4">
                     <div className="relative overflow-hidden rounded-xl">
-                      <img 
+                      <Image 
                         src={(postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
                         alt="Post content" 
+                        width={500}
+                        height={300}
                         className="w-full h-auto object-cover aspect-video"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';

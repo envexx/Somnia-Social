@@ -2,7 +2,8 @@
 
 import { useAccount } from 'wagmi'
 import { useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { 
   RoundedWallet,
@@ -36,7 +37,7 @@ export default function LeftSidebar({
   hideBrandHeader = false 
 }: LeftSidebarProps) {
   const router = useRouter()
-  const pathname = usePathname()
+  // const pathname = usePathname()
   const { address, isConnected } = useAccount()
   const { userProfile, hasProfile } = useProfileContract()
   const [profileData, setProfileData] = useState<Record<string, unknown> | null>(null)
@@ -104,9 +105,11 @@ export default function LeftSidebar({
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-3">
             <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
-              <img 
+              <Image 
                 src="/favicon.png" 
                 alt="Somnia Social Logo"
+                width={36}
+                height={36}
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   console.error('Logo failed to load:', e);
@@ -166,9 +169,11 @@ export default function LeftSidebar({
               <div className="relative">
                 {profileData?.avatar ? (
                   <div className="w-10 h-10 rounded-xl overflow-hidden">
-                    <img 
+                    <Image 
                       src={(profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
                       alt="Profile Avatar"
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
                     />
                   </div>

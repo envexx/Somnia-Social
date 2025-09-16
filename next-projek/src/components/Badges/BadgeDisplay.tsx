@@ -66,7 +66,7 @@ export default function BadgeDisplay({
   const { userTiers, highestTier } = useBadgesContract()
 
   // Use provided userAddress or current user's address
-  const address = userAddress
+  // const address = userAddress
 
   // Get size classes
   const sizeClasses = {
@@ -143,7 +143,7 @@ export default function BadgeDisplay({
 
 // Component for displaying all user badges
 export function AllBadgesDisplay({ 
-  userAddress, 
+  userAddress: _userAddress, 
   isDarkMode = false, 
   className = '' 
 }: Omit<BadgeDisplayProps, 'size' | 'showText'>) {

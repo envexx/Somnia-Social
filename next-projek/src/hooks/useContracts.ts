@@ -1,10 +1,10 @@
 'use client'
 
 import { useReadContract, useWriteContract, useAccount } from 'wagmi'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { ethers } from 'ethers'
 import { CONTRACT_ADDRESSES, PROFILE_REGISTRY_ABI, POST_FEED_ABI, REACTIONS_ABI, BADGES_ABI } from '@/lib/web3-config'
-import { ipfsService, createProfileData, createPostData, PostData, ProfileData } from '@/lib/ipfs'
+import { ipfsService, createProfileData, PostData, ProfileData } from '@/lib/ipfs'
 import { cacheService, CACHE_KEYS, CACHE_TTL } from '@/lib/cache'
 import { useGaslessTransactions } from './useGaslessTransactions'
 
@@ -131,7 +131,7 @@ export function useProfileContract() {
   }, [hasProfile, hasProfileLoading, hasProfileError])
 
   // Manual test function to debug contract calls
-  const testContractConnection = async () => {
+  const testContractConnection = useCallback(async () => {
     if (!address) {
       console.log('No address available for testing')
       return
@@ -161,7 +161,7 @@ export function useProfileContract() {
         console.log('This error means "Profile not found" - user needs to create a profile first')
       }
     }
-  }
+  }, [address, refetchHasProfile, refetchUserProfile])
 
   // Auto-test when address is available
   useEffect(() => {
@@ -169,7 +169,7 @@ export function useProfileContract() {
       console.log('Address detected, testing contract connection...')
       testContractConnection()
     }
-  }, [address])
+  }, [address, testContractConnection])
 
   const { writeContractAsync: createProfile } = useWriteContract()
   const { writeContractAsync: updateProfile } = useWriteContract()
@@ -425,7 +425,7 @@ export function usePostContract() {
     }
   }
 
-  const { writeContractAsync: createPost } = useWriteContract()
+  // const { writeContractAsync: createPost } = useWriteContract()
 
   const createPostWithIPFS = async (text: string, images?: string[], embeds?: PostData['embeds'], replyTo?: number, repostOf?: number) => {
     try {
@@ -486,7 +486,7 @@ export function useReactionsContract() {
   const { address } = useAccount()
   const { toggleGaslessLike } = useGaslessTransactions()
   
-  const { writeContractAsync: toggleLikeAsync } = useWriteContract()
+  // const { writeContractAsync: toggleLikeAsync } = useWriteContract()
 
   // Function to toggle like for a specific post
   const toggleLike = async (postId: number) => {

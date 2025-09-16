@@ -3,7 +3,7 @@
 import { useAccount, useSignTypedData } from 'wagmi'
 import { ethers } from 'ethers'
 import { CONTRACT_ADDRESSES, BATCH_RELAYER_ABI, POST_FEED_ABI, REACTIONS_ABI, PROFILE_REGISTRY_ABI } from '@/lib/web3-config'
-import { ipfsService, createPostData, createProfileData, PostData, ProfileData } from '@/lib/ipfs'
+import { ipfsService, createPostData, createProfileData, PostData } from '@/lib/ipfs'
 
 // EIP-712 Domain untuk BatchRelayer
 const BATCH_DOMAIN = {
@@ -314,10 +314,45 @@ export function useGaslessTransactions() {
     }
   }
 
+  // Define action data types
+  type CreatePostData = {
+    text: string
+    images?: string[]
+    embeds?: Array<{ type: 'link' | 'video' | 'image'; url: string; title?: string; description?: string; image?: string }>
+    replyTo?: number
+    repostOf?: number
+  }
+
+  type ToggleLikeData = {
+    postId: number
+  }
+
+  type CreateProfileData = {
+    username: string
+    displayName: string
+    bio: string
+    avatar?: string
+    website?: string
+    twitter?: string
+    discord?: string
+  }
+
+  type UpdateProfileData = {
+    username?: string
+    displayName?: string
+    bio?: string
+    avatar?: string
+    website?: string
+    twitter?: string
+    discord?: string
+  }
+
+  type ActionData = CreatePostData | ToggleLikeData | CreateProfileData | UpdateProfileData
+
   // Fungsi untuk batch multiple actions secara gasless
   const executeGaslessBatch = async (actions: {
     type: 'createPost' | 'toggleLike' | 'createProfile' | 'updateProfile'
-    data: any
+    data: ActionData
   }[]): Promise<{ success: boolean; txHash?: string; error?: string }> => {
     if (!address) {
       return { success: false, error: 'Wallet not connected' }
@@ -331,14 +366,15 @@ export function useGaslessTransactions() {
       // Process each action and add to batch calls
       for (const action of actions) {
         switch (action.type) {
-          case 'createPost':
-            const postData = createPostData(action.data.text, address, 'post', action.data.images, action.data.embeds)
+          case 'createPost': {
+            const createPostActionData = action.data as CreatePostData
+            const postData = createPostData(createPostActionData.text, address, 'post', createPostActionData.images, createPostActionData.embeds)
             const postCid = await ipfsService.uploadPost(postData)
             const postFeedInterface = new ethers.Interface(POST_FEED_ABI)
             const createPostCallData = postFeedInterface.encodeFunctionData('createPost', [
               postCid,
-              BigInt(action.data.replyTo || 0),
-              BigInt(action.data.repostOf || 0),
+              BigInt(createPostActionData.replyTo || 0),
+              BigInt(createPostActionData.repostOf || 0),
               address // Add user address for gasless transactions
             ])
             calls.push({
@@ -347,31 +383,39 @@ export function useGaslessTransactions() {
               data: createPostCallData
             })
             break
+          }
             
-          case 'toggleLike':
+          case 'toggleLike': {
+            const toggleLikeData = action.data as ToggleLikeData
             const reactionsInterface = new ethers.Interface(REACTIONS_ABI)
             // Contract expects uint64 postId and address user
-            const toggleLikeData = reactionsInterface.encodeFunctionData('toggleLike', [action.data.postId, address])
+            const toggleLikeCallData = reactionsInterface.encodeFunctionData('toggleLike', [toggleLikeData.postId, address])
             calls.push({
               target: CONTRACT_ADDRESSES.Reactions,
               value: 0,
-              data: toggleLikeData
+              data: toggleLikeCallData
             })
             break
+          }
             
-          case 'createProfile':
+          case 'createProfile': {
+            const createProfileActionData = action.data as CreateProfileData
             const profileData = createProfileData(
-              action.data.username, 
-              action.data.displayName, 
-              action.data.bio, 
-              action.data.avatar, 
-              action.data.location, 
-              action.data.links
+              createProfileActionData.username, 
+              createProfileActionData.displayName, 
+              createProfileActionData.bio, 
+              createProfileActionData.avatar, 
+              undefined, // location
+              {
+                website: createProfileActionData.website,
+                x: createProfileActionData.twitter,
+                discord: createProfileActionData.discord
+              }
             )
             const profileCid = await ipfsService.uploadProfile(profileData)
             const profileInterface = new ethers.Interface(PROFILE_REGISTRY_ABI)
             const createProfileCallData = profileInterface.encodeFunctionData('createProfile', [
-              action.data.username.toLowerCase(),
+              createProfileActionData.username.toLowerCase(),
               profileCid,
               address // Add user address for gasless transactions
             ])
@@ -381,6 +425,35 @@ export function useGaslessTransactions() {
               data: createProfileCallData
             })
             break
+          }
+            
+          case 'updateProfile': {
+            const updateProfileActionData = action.data as UpdateProfileData
+            const profileData = createProfileData(
+              updateProfileActionData.username || '', 
+              updateProfileActionData.displayName || '', 
+              updateProfileActionData.bio, 
+              updateProfileActionData.avatar, 
+              undefined, // location
+              {
+                website: updateProfileActionData.website,
+                x: updateProfileActionData.twitter,
+                discord: updateProfileActionData.discord
+              }
+            )
+            const profileCid = await ipfsService.uploadProfile(profileData)
+            const profileInterface = new ethers.Interface(PROFILE_REGISTRY_ABI)
+            const updateProfileCallData = profileInterface.encodeFunctionData('updateProfile', [
+              profileCid,
+              address // Add user address for gasless transactions
+            ])
+            calls.push({
+              target: CONTRACT_ADDRESSES.ProfileRegistry,
+              value: 0,
+              data: updateProfileCallData
+            })
+            break
+          }
         }
       }
       

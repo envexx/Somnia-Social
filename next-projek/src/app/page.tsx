@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function Home() {
   const router = useRouter()
@@ -15,9 +16,11 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-xl flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500">
-          <img 
+          <Image 
             src="/favicon.png" 
             alt="Somnia Social Logo"
+            width={32}
+            height={32}
             className="w-8 h-8"
           />
         </div>
