@@ -170,7 +170,7 @@ export default function LeftSidebar({
                 {profileData?.avatar ? (
                   <div className="w-10 h-10 rounded-xl overflow-hidden">
                     <Image 
-                      src={(profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
+                      src={ipfsService.convertToGatewayUrl(profileData.avatar as string)} 
                       alt="Profile Avatar"
                       width={40}
                       height={40}
@@ -196,7 +196,7 @@ export default function LeftSidebar({
                   <BadgeDisplay 
                     userAddress={address}
                     isDarkMode={isDarkMode}
-                    size="sm"
+                    size="xs"
                     showText={false}
                   />
                 </div>

@@ -141,7 +141,7 @@ export default function FeedPage() {
 
           {/* Right Sidebar Area - Hidden on mobile and tablet, visible on desktop */}
           <aside className="hidden xl:block right-sidebar-area w-88 h-screen overflow-y-auto scrollbar-hide pt-20">
-            <RightSidebar isDarkMode={isDarkMode} />
+            <RightSidebar />
           </aside>
           
         </div>

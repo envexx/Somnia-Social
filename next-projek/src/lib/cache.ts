@@ -79,6 +79,7 @@ export const CACHE_KEYS = {
   HAS_PROFILE: (address: string) => `has_profile_${address}`,
   TOTAL_PROFILES: 'total_profiles',
   IPFS_DATA: (cid: string) => `ipfs_${cid}`,
+  SUGGESTED_USERS: (address: string) => `suggested_users_${address}`,
 } as const
 
 // Cache TTL constants (in milliseconds)
@@ -89,4 +90,5 @@ export const CACHE_TTL = {
   HAS_PROFILE: 5 * 60 * 1000, // 5 minutes
   TOTAL_PROFILES: 30 * 60 * 1000, // 30 minutes
   IPFS_DATA: 60 * 60 * 1000, // 1 hour (IPFS data rarely changes)
+  SUGGESTED_USERS: 5 * 60 * 1000, // 5 minutes
 } as const

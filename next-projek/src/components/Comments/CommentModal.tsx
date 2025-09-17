@@ -83,7 +83,7 @@ export default function CommentModal({
           
           let avatarUrl: string
           if (profile.avatar) {
-            avatarUrl = (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')
+            avatarUrl = ipfsService.convertToGatewayUrl(profile.avatar as string)
           } else {
             // Fallback to generated avatar
             const displayName = (profile.displayName as string) || 'U'
@@ -125,7 +125,7 @@ export default function CommentModal({
 
                   let avatarUrl: string
                   if (profile.avatar) {
-                    avatarUrl = (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')
+                    avatarUrl = ipfsService.convertToGatewayUrl(profile.avatar as string)
                   } else {
                     const displayName = (profile.displayName as string) || 'U'
                     avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&color=fff&size=64`
@@ -275,52 +275,65 @@ export default function CommentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div 
         ref={modalRef}
-        className={`${darkMode ? 'bg-slate-900' : 'bg-white'} rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl`}
+        className={`
+          ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} 
+          rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border
+        `}
       >
         {/* Header */}
-        <div className={`p-6 border-b ${darkMode ? 'border-slate-700' : 'border-gray-200'}`}>
+        <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
           <div className="flex items-center justify-between">
-            <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-              Comments
-            </h2>
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <RoundedMessage className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </div>
+              <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Comments
+              </h2>
+            </div>
             <button
               onClick={onClose}
-              className={`p-2 ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-100'} rounded-lg transition-all`}
+              className={`
+                p-2 rounded-full transition-all duration-200
+                ${darkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}
+              `}
             >
-              <RoundedClose className={`w-5 h-5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`} />
+              <RoundedClose className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Original Post */}
-        <div className={`p-6 border-b ${darkMode ? 'border-slate-700 bg-slate-800/50' : 'border-gray-200 bg-gray-50'}`}>
-          <div className="flex items-start space-x-3">
-            <Image 
-              src={postAuthor.avatar} 
-              alt={postAuthor.username} 
-              width={40}
-              height={40}
-              className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" 
-            />
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <h4 className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+        <div className={`p-6 ${darkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50/50 border-gray-100'} border-b`}>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0">
+              <Image 
+                src={postAuthor.avatar} 
+                alt={postAuthor.username} 
+                width={44}
+                height={44}
+                className="w-11 h-11 rounded-full object-cover ring-2 ring-white/10" 
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   {postAuthor.name}
                 </h4>
                 <BadgeDisplay 
                   userAddress={postAuthor.address}
                   isDarkMode={darkMode}
-                  size="sm"
+                  size="xs"
                   showText={false}
                 />
+                <span className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  @{postAuthor.username}
+                </span>
               </div>
-              <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
-                @{postAuthor.username}
-              </p>
-              <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} text-base leading-relaxed`}>
+              <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {postContent}
               </p>
             </div>
@@ -329,34 +342,48 @@ export default function CommentModal({
 
         {/* Comment Input */}
         {isConnected && (
-          <div className={`p-6 border-b ${darkMode ? 'border-slate-700' : 'border-gray-200'}`}>
-            <div className="flex items-start space-x-3">
-              <Image 
-                src={currentUserAvatar} 
-                alt="Your avatar" 
-                width={32}
-                height={32}
-                className="w-8 h-8 rounded-full border border-white/50 object-cover" 
-              />
+          <div className={`p-6 border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0">
+                <Image 
+                  src={currentUserAvatar} 
+                  alt="Your avatar" 
+                  width={36}
+                  height={36}
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-white/10" 
+                />
+              </div>
               <div className="flex-1">
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
+                  placeholder="Add a comment..."
                   rows={3}
-                  className={`w-full px-4 py-3 text-sm rounded-lg border ${darkMode ? 'bg-slate-700/50 border-slate-600/50 text-white placeholder-slate-400' : 'bg-white/50 border-gray-300/50 text-slate-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none`}
+                  className={`
+                    w-full px-4 py-3 text-sm rounded-xl border transition-all duration-200 resize-none
+                    ${darkMode 
+                      ? 'bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:bg-gray-800' 
+                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:bg-white'
+                    }
+                    focus:outline-none focus:ring-0
+                  `}
                 />
-                <div className="flex justify-end mt-3">
+                <div className="flex justify-between items-center mt-3">
+                  <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {newComment.length}/280
+                  </span>
                   <button
                     onClick={handlePostComment}
-                    disabled={!newComment.trim() || isPosting}
-                    className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
-                      !newComment.trim() || isPosting
-                        ? `${darkMode ? 'bg-slate-700/50 text-slate-500' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
-                        : `${darkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} hover:scale-105`
-                    }`}
+                    disabled={!newComment.trim() || isPosting || newComment.length > 280}
+                    className={`
+                      px-5 py-2 text-sm font-medium rounded-full transition-all duration-200
+                      ${!newComment.trim() || isPosting || newComment.length > 280
+                        ? `${darkMode ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`
+                        : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg transform hover:scale-105'
+                      }
+                    `}
                   >
-                    {isPosting ? 'Posting...' : 'Post Comment'}
+                    {isPosting ? 'Posting...' : 'Reply'}
                   </button>
                 </div>
               </div>
@@ -367,68 +394,91 @@ export default function CommentModal({
         {/* Comments List */}
         <div className="overflow-y-auto max-h-96">
           {isLoading ? (
-            <div className="p-6 text-center">
-              <div className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+            <div className="p-8 text-center">
+              <div className={`inline-flex items-center gap-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <div className={`w-4 h-4 rounded-full animate-spin border-2 ${darkMode ? 'border-gray-600 border-t-gray-400' : 'border-gray-300 border-t-gray-600'}`}></div>
                 Loading comments...
               </div>
             </div>
           ) : comments.length > 0 ? (
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {comments.map((comment) => (
-                <div key={comment.id} className="p-6">
-                  <div className="flex items-start space-x-3">
-                    <Image 
-                      src={comment.author.avatar} 
-                      alt={comment.author.username} 
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full border border-white/50 object-cover" 
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h5 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+            <div>
+              {comments.map((comment, index) => (
+                <div 
+                  key={comment.id} 
+                  className={`
+                    p-6 transition-colors duration-150
+                    ${index !== comments.length - 1 ? (darkMode ? 'border-b border-gray-800' : 'border-b border-gray-100') : ''}
+                    ${darkMode ? 'hover:bg-gray-900/50' : 'hover:bg-gray-50/50'}
+                  `}
+                >
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0">
+                      <Image 
+                        src={comment.author.avatar} 
+                        alt={comment.author.username} 
+                        width={36}
+                        height={36}
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white/10" 
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h5 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                           {comment.author.name}
                         </h5>
                         <BadgeDisplay 
                           userAddress={comment.author.address}
                           isDarkMode={darkMode}
-                          size="sm"
+                          size="xs"
                           showText={false}
                         />
-                        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                           @{comment.author.username}
                         </span>
-                        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                           {comment.timestamp}
                         </span>
                       </div>
-                      <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} text-sm leading-relaxed mb-3`}>
+                      <p className={`text-sm leading-relaxed mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {comment.content}
                       </p>
-                      <div className="flex items-center space-x-4">
-                        <button 
-                          onClick={() => handleLikeComment(comment.id)}
-                          disabled={!isConnected}
-                          className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-all ${
-                            comment.liked
-                              ? `${darkMode ? 'text-red-400 bg-red-500/20 border border-red-500/30' : 'text-red-600 bg-red-50 border border-red-200'}`
-                              : `${darkMode ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <RoundedHeart className={`w-4 h-4 ${comment.liked ? 'fill-current text-red-500' : 'text-gray-400'}`} />
-                          <span className="text-xs font-medium">{comment.likes}</span>
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => handleLikeComment(comment.id)}
+                        disabled={!isConnected}
+                        className={`
+                          inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium
+                          transition-all duration-200
+                          ${comment.liked
+                            ? 'text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20'
+                            : `${darkMode 
+                                ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10 border border-gray-700 hover:border-red-500/30' 
+                                : 'text-gray-500 hover:text-red-500 hover:bg-red-50 border border-gray-200 hover:border-red-200'
+                              }`
+                          }
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                        `}
+                      >
+                        <RoundedHeart 
+                          className={`w-4 h-4 ${comment.liked ? 'fill-current' : ''}`} 
+                        />
+                        <span>{comment.likes}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-6 text-center">
-              <div className={`text-sm ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
-                No comments yet. Be the first to comment!
+            <div className="p-12 text-center">
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <RoundedMessage className={`w-8 h-8 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
               </div>
+              <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                No comments yet
+              </h3>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Be the first to share your thoughts!
+              </p>
             </div>
           )}
         </div>

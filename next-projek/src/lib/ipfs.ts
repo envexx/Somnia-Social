@@ -110,6 +110,12 @@ class IPFSService {
         throw new Error('Invalid CID provided to fetchFromIPFS')
       }
       
+      // Skip test CIDs and invalid CIDs
+      if (cid.includes('test') || cid.includes('Test') || cid === 'QmTestProfile' || cid.length < 10) {
+        console.log(`Skipping test/invalid CID: ${cid}`)
+        throw new Error(`Skipping test/invalid CID: ${cid}`)
+      }
+      
       const cidWithoutPrefix = cid.replace('ipfs://', '')
       
       // List of gateways to try
@@ -127,23 +133,18 @@ class IPFSService {
         try {
           const url = `${gateway}${cidWithoutPrefix}`
           console.log('Trying gateway:', gateway)
-          console.log('Fetching from URL:', url)
           
           const response = await fetch(url, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
             },
-            signal: AbortSignal.timeout(10000) // 10 second timeout
+            signal: AbortSignal.timeout(5000) // 5 second timeout
           })
-          
-          console.log('Response status:', response.status)
-          console.log('Response ok:', response.ok)
           
           if (response.ok) {
             const data = await response.json()
             console.log('IPFS data fetched successfully from:', gateway)
-            console.log('IPFS data:', data)
             
             // Cache the data
             cacheService.set(cacheKey, data, CACHE_TTL.IPFS_DATA)
@@ -361,6 +362,31 @@ class IPFSService {
   getGatewayUrl(cid: string): string {
     const cidWithoutPrefix = cid.replace('ipfs://', '')
     return `${this.gateway}${cidWithoutPrefix}`
+  }
+
+  // Convert IPFS URL to HTTP gateway URL
+  convertToGatewayUrl(url: string): string {
+    if (!url || typeof url !== 'string') {
+      return url
+    }
+    
+    // If it's already an HTTP URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    
+    // If it's an IPFS URL, convert to gateway URL
+    if (url.startsWith('ipfs://')) {
+      return this.getGatewayUrl(url)
+    }
+    
+    // If it's just a CID without protocol, add gateway prefix
+    if (url.startsWith('Qm') || url.startsWith('bafy')) {
+      return `${this.gateway}${url}`
+    }
+    
+    // Return as is if it doesn't match any pattern
+    return url
   }
 }
 

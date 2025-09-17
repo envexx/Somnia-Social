@@ -130,7 +130,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
             setProfileData(profileData)
             
             // Convert IPFS avatar URL to HTTP URL for edit form
-            const httpAvatarUrl = profileData.avatar ? profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/') : ''
+            const httpAvatarUrl = profileData.avatar ? ipfsService.convertToGatewayUrl(profileData.avatar) : ''
             
             setEditData({
               username: profileData.username || '',
@@ -145,7 +145,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
             
             // Set avatar preview if avatar exists
             if (profileData.avatar) {
-              const httpAvatarUrl = profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/')
+              const httpAvatarUrl = ipfsService.convertToGatewayUrl(profileData.avatar)
               setAvatarPreview(httpAvatarUrl)
             }
             return
@@ -158,7 +158,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
           
           // Convert IPFS avatar URL to HTTP URL for edit form
           const profile = data as Record<string, unknown>
-          const httpAvatarUrl = profile.avatar ? (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : ''
+          const httpAvatarUrl = profile.avatar ? ipfsService.convertToGatewayUrl(profile.avatar as string) : ''
           
           setEditData({
             username: (profile.username as string) || '',
@@ -174,7 +174,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
           // Set avatar preview if avatar exists
           if (profile.avatar) {
             // Convert IPFS URL to HTTP URL for browser compatibility
-            const httpAvatarUrl = (profile.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')
+            const httpAvatarUrl = ipfsService.convertToGatewayUrl(profile.avatar as string)
             setAvatarPreview(httpAvatarUrl)
           }
 
@@ -328,12 +328,12 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 id: actualPostId.toString(),
                 content: (postData.text as string) || 'No content available',
                 image: postData.images && Array.isArray(postData.images) && postData.images.length > 0 ? 
-                  (postData.images[0] as string).replace('ipfs://', 'https://ipfs.io/ipfs/') : null,
+                  ipfsService.convertToGatewayUrl(postData.images[0] as string) : null,
                 timestamp: new Date(Number(post.createdAt) * 1000).toLocaleDateString(),
                 author: {
                   name: profileDataRef.current?.displayName || 'Unknown User',
                   username: profileDataRef.current?.username || 'unknown',
-                  avatar: profileDataRef.current?.avatar ? profileDataRef.current.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/') : '/default-avatar.png',
+                  avatar: profileDataRef.current?.avatar ? ipfsService.convertToGatewayUrl(profileDataRef.current.avatar) : '/default-avatar.png',
                   verified: false,
                   address: address
                 },
@@ -377,7 +377,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                 author: {
                   name: profileDataRef.current?.displayName || 'Unknown User',
                   username: profileDataRef.current?.username || 'unknown',
-                  avatar: profileDataRef.current?.avatar ? profileDataRef.current.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/') : '/default-avatar.png',
+                  avatar: profileDataRef.current?.avatar ? ipfsService.convertToGatewayUrl(profileDataRef.current.avatar) : '/default-avatar.png',
                   verified: false,
                   address: address
                 },
@@ -783,7 +783,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
                     <BadgeDisplay 
                       userAddress={address}
                       isDarkMode={isDarkMode}
-                      size="md"
+                      size="sm"
                       showText={true}
                     />
                   </div>
@@ -974,7 +974,7 @@ export default function ProfileView({ onBackToFeed }: ProfileViewProps) {
         />
         
         {/* Personal Posts Section */}
-        <div className={`mt-8 ${isDarkMode ? 'bg-slate-800/60' : 'bg-white/70'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} p-6 shadow-lg`}>
+        <div className={`mt-8 ${isDarkMode ? 'bg-slate-800/60' : 'bg-white/70'} backdrop-blur-2xl rounded-xl border ${isDarkMode ? 'border-slate-700/50' : 'border-white/50'} p-6 shadow-lg relative z-[1]`}>
           <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
             My Posts
           </h3>

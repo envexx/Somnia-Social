@@ -768,14 +768,6 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             <button className={`px-3 lg:px-4 py-2 ${isDarkMode ? 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'} rounded-2xl text-xs lg:text-sm font-medium transition-all`}>
               Popular
             </button>
-            <button 
-              onClick={() => {
-                refetchLatestPosts()
-              }}
-              className={`px-3 lg:px-4 py-2 ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20 hover:text-blue-300' : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'} rounded-2xl text-xs lg:text-sm font-medium transition-all border ${isDarkMode ? 'border-blue-500/30' : 'border-blue-300/50'}`}
-            >
-              🔄 Refresh
-            </button>
           </div>
         </div>
       </div>
@@ -785,7 +777,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
         <div className="flex items-start space-x-3">
           {hasProfile && profileData?.avatar ? (
             <Image 
-              src={profileData.avatar.replace('ipfs://', 'https://ipfs.io/ipfs/')} 
+              src={ipfsService.convertToGatewayUrl(profileData.avatar)} 
               alt={profileData.displayName || 'Profile'} 
               width={36}
               height={36}
@@ -907,7 +899,13 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
             </button>
           </div>
         ) : (
-          allPosts.map((post) => {
+          allPosts
+            .filter((post) => {
+              const postData = post as Record<string, unknown>
+              // Only show main posts (not comments) in the feed
+              return (postData.replyTo as number) === 0
+            })
+            .map((post) => {
             const postData = post as Record<string, unknown>
             const author = postData.author as Record<string, unknown>
             return (
@@ -929,18 +927,9 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                         <BadgeDisplay 
                           userAddress={author?.address as string}
                           isDarkMode={isDarkMode}
-                          size="sm"
+                          size="xs"
                           showText={false}
                         />
-                        {/* Comment Indicator */}
-                        {(postData.replyTo as number) > 0 && (
-                          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-blue-100 text-blue-600 border border-blue-200'}`}>
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                            </svg>
-                            <span>Comment to {postData.replyToAuthor as string || 'Unknown'}</span>
-                          </div>
-                        )}
                         {author?.verified as boolean && <RoundedShield className="w-4 h-4 text-blue-500" />}
                       </div>
                       <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`}>{postData.timestamp as string}</p>
@@ -978,7 +967,7 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
                   <div className="mb-4 -mx-4">
                     <div className="relative overflow-hidden rounded-xl">
                       <Image 
-                        src={(postData.image as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
+                        src={ipfsService.convertToGatewayUrl(postData.image as string)} 
                         alt="Post content" 
                         width={500}
                         height={300}

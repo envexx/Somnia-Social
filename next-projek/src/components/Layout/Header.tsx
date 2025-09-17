@@ -148,7 +148,7 @@ export default function Header({ isDarkMode, toggleDarkMode, onShowProfile }: He
                   {profileData?.avatar ? (
                     <div className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl overflow-hidden">
                       <Image 
-                        src={(profileData.avatar as string).replace('ipfs://', 'https://ipfs.io/ipfs/')} 
+                        src={ipfsService.convertToGatewayUrl(profileData.avatar as string)} 
                         alt="Profile Avatar"
                         width={36}
                         height={36}
