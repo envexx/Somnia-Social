@@ -135,7 +135,7 @@ export default function Header({ isDarkMode, toggleDarkMode, onShowProfile }: He
                 }`}
                 title="Create Account"
               >
-                <RoundedMessage className="w-4 h-4 xl:w-5 xl:h-5" />
+                <RoundedUsers className="w-4 h-4 xl:w-5 xl:h-5" />
               </button>
             ) : (
               // Profile exists - show profile avatar

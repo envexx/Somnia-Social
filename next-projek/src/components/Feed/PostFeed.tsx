@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { 
   RoundedHeart, 
   RoundedMessage, 
@@ -46,6 +47,7 @@ interface PostFeedProps {
 }
 
 export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeedProps) {
+  const router = useRouter()
   const { address, isConnected } = useAccount()
   const { createPost, latestPosts, refetchLatestPosts } = usePostContract()
   const { toggleLike, hasLiked, getLikeCount } = useReactionsContract()
@@ -708,7 +710,8 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
     }
 
     if (!hasProfile) {
-      alert('Please create a profile first')
+      // Redirect to profile page to create profile instead of showing alert
+      router.push('/profile')
       return
     }
 
@@ -739,8 +742,20 @@ export default function PostFeed({ posts, onLike, isDarkMode = false }: PostFeed
       setSelectedImages([])
       setImagePreviews([])
       
+      // Wait a moment for blockchain to process the transaction
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
       // Refetch posts to show the new post
       await refetchLatestPosts()
+      
+      // Show success feedback
+      console.log('✅ Post created successfully!')
+      
+      // Additional refresh after a short delay to ensure the post appears
+      setTimeout(async () => {
+        await refetchLatestPosts()
+        console.log('🔄 Feed refreshed to show new post')
+      }, 3000)
     } catch (error) {
       console.error('Error creating post:', error)
       alert('Failed to create post. Please try again.')

@@ -137,7 +137,7 @@ export default function LeftSidebar({
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background: 'linear-gradient(to right, #0000FF, #4485F3)'}}>
-                <RoundedMessage className="w-5 h-5 text-white" />
+                <RoundedUsers className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'} text-sm`}>

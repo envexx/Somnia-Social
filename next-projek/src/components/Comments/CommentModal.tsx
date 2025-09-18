@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { 
   RoundedHeart, 
   RoundedMessage, 
@@ -51,10 +52,11 @@ export default function CommentModal({
   postContent,
   isDarkMode = false 
 }: CommentModalProps) {
+  const router = useRouter()
   const { address, isConnected } = useAccount()
   const { createPost, getComments, refetchLatestPosts } = usePostContract()
   const { hasLiked, getLikeCount, toggleLike } = useReactionsContract()
-  const { getProfileByOwner } = useProfileContract()
+  const { hasProfile, getProfileByOwner } = useProfileContract()
   const { isDarkMode: contextDarkMode } = useDarkMode()
   
   const darkMode = isDarkMode || contextDarkMode
@@ -204,6 +206,12 @@ export default function CommentModal({
   const handlePostComment = async () => {
     if (!newComment.trim() || !isConnected || !address) return
 
+    if (!hasProfile) {
+      // Redirect to profile page to create profile instead of showing alert
+      router.push('/profile')
+      return
+    }
+
     setIsPosting(true)
     try {
       // Create comment data for IPFS
@@ -225,10 +233,24 @@ export default function CommentModal({
       
       // Clear input and reload comments (force refresh)
       setNewComment('')
+      
+      // Wait a moment for blockchain to process the transaction
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
       await loadComments() // Reload comments to get new comment
       
       // Refetch latest posts to update comment count
       await refetchLatestPosts()
+      
+      // Show success feedback
+      console.log('✅ Comment posted successfully!')
+      
+      // Additional refresh after a short delay to ensure the comment appears
+      setTimeout(async () => {
+        await loadComments()
+        await refetchLatestPosts()
+        console.log('🔄 Comments refreshed to show new comment')
+      }, 2500)
       
     } catch (error) {
       console.error('Error posting comment:', error)
