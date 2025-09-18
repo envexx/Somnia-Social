@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="next-projek/src/app/somnia social.png" alt="Somnia Social Logo" width="200" height="200">
+  <img src="next-projek/public/somnia social.png" alt="Somnia Social Logo" width="200" height="200">
   <h1>🌟 Somnia Social - Decentralized Social Media Platform</h1>
 </div>
 
@@ -264,11 +264,14 @@ const { userProfile, createProfile } = useProfileContract()
 - **Smooth Animations**: Polished interactions and transitions
 
 ### Key Components
-- **Feed**: Infinite scroll post feed with real-time updates
-- **Profile**: Comprehensive user profile with stats and badges
-- **Post Creation**: Rich text editor with image upload
-- **Chat System**: Real-time messaging interface
-- **Settings**: User preferences and account management
+- **Feed**: Infinite scroll post feed with real-time updates and instant refresh
+- **Profile**: Comprehensive user profile with stats, badges, and post history
+- **Post Creation**: Rich text editor with image upload (up to 4 images)
+- **Comment System**: Nested comment system with real-time updates
+- **Chat Widget**: Real-time messaging interface
+- **Badge System**: 4-tier achievement system (Explorer, Influencer, Leader, Legend)
+- **Dark/Light Mode**: Automatic theme switching with user preference
+- **Responsive Design**: Mobile-first approach with desktop optimization
 
 ## 🔒 Security Features
 
@@ -342,8 +345,10 @@ const { userProfile, createProfile } = useProfileContract()
 ### ✅ User Experience
 - **Intuitive Design**: Familiar social media interface with Web3 enhancements
 - **Gasless Experience**: No gas fees for users
-- **Real-time Updates**: Live feed and notification system
+- **Real-time Updates**: Live feed and notification system with instant refresh
 - **Mobile Responsive**: Works seamlessly on all devices
+- **Profile Redirect**: Automatic redirect to profile creation for new users
+- **Instant Feed Updates**: Posts appear immediately after creation without manual refresh
 
 ### ✅ Onchain Impact
 - **Fully On-chain**: All core functionality implemented on Somnia
@@ -367,7 +372,7 @@ const { userProfile, createProfile } = useProfileContract()
 - ✅ Gasless transactions
 
 ### Phase 2: Enhanced Features
-- 🔄 Direct messaging system
+- ✅ Chat system (ChatWidget implemented)
 - 🔄 Content monetization
 - 🔄 NFT profile pictures
 - 🔄 Community groups
@@ -398,7 +403,17 @@ Somnia-Social/
 ├── next-projek/              # Frontend application
 │   ├── src/
 │   │   ├── app/              # Next.js app directory
+│   │   │   ├── feed/         # Feed page
+│   │   │   ├── profile/      # Profile page
+│   │   │   ├── communities/  # Communities page
+│   │   │   └── trending/     # Trending page
 │   │   ├── components/       # React components
+│   │   │   ├── Feed/         # Post feed components
+│   │   │   ├── Profile/      # Profile components
+│   │   │   ├── Layout/       # Layout components
+│   │   │   ├── Badges/       # Badge system
+│   │   │   ├── Comments/     # Comment system
+│   │   │   └── Chat/         # Chat widget
 │   │   ├── hooks/            # Custom React hooks
 │   │   ├── lib/              # Utilities and configs
 │   │   └── styles/           # CSS styles
@@ -441,11 +456,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Next.js** and **React** for the modern frontend framework
 
 ## 📞 Contact & Support
-
-### Team Information
-- **Project**: Somnia Social
-- **Hackathon**: Somnia DeFi Mini Hackathon 2025
-- **Track**: Social Media & Community
 
 ### Team Contact
 - **Telegram**: [@mimpowo](https://t.me/mimpowo)
